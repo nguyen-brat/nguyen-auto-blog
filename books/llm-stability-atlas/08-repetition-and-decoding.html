@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Chapter 8 - Repetition and Decoding</title>
+    <link rel="stylesheet" href="assets/styles.css">
+    <script defer src="assets/app.js"></script>
+  </head>
+  <body>
+    <header class="book-topbar">
+      <div class="book-topbar-inner">
+        <div class="brand">
+          <span class="eyebrow">Chapter 8</span>
+          <strong>Repetition and Decoding</strong>
+        </div>
+        <nav class="top-links">
+          <a href="index.html" data-page="index.html">Home</a>
+          <a href="08-repetition-and-decoding.html" data-page="08-repetition-and-decoding.html">Chapter 8</a>
+          <a href="09-frontier-methods-and-open-questions.html" data-page="09-frontier-methods-and-open-questions.html">Chapter 9</a>
+          <a href="appendix-sources-and-reproducibility.html" data-page="appendix-sources-and-reproducibility.html">Appendix</a>
+        </nav>
+      </div>
+    </header>
+
+    <div class="page-shell handbook-shell">
+      <aside class="global-nav">
+        <span class="nav-label">Handbook</span>
+        <h2>Ordered Chapters</h2>
+        <ol>
+          <li><a href="01-failure-taxonomy.html" data-page="01-failure-taxonomy.html">Failure Taxonomy</a></li>
+          <li><a href="02-input-pipeline-and-diagnosis.html" data-page="02-input-pipeline-and-diagnosis.html">Input Pipeline and Diagnosis</a></li>
+          <li><a href="03-stability-baseline-recipe.html" data-page="03-stability-baseline-recipe.html">Stability Baseline Recipe</a></li>
+          <li><a href="04-residual-and-depth-geometry.html" data-page="04-residual-and-depth-geometry.html">Residual and Depth Geometry</a></li>
+          <li><a href="05-attention-logit-control.html" data-page="05-attention-logit-control.html">Attention-Logit Control</a></li>
+          <li><a href="06-output-head-stability.html" data-page="06-output-head-stability.html">Output-Head Stability</a></li>
+          <li><a href="07-numeric-path-and-optimizer-hygiene.html" data-page="07-numeric-path-and-optimizer-hygiene.html">Numeric Path and Optimizer Hygiene</a></li>
+          <li><a href="08-repetition-and-decoding.html" data-page="08-repetition-and-decoding.html">Repetition and Decoding</a></li>
+          <li><a href="09-frontier-methods-and-open-questions.html" data-page="09-frontier-methods-and-open-questions.html">Frontier Methods and Open Questions</a></li>
+          <li><a href="appendix-sources-and-reproducibility.html" data-page="appendix-sources-and-reproducibility.html">Appendix</a></li>
+        </ol>
+      </aside>
+
+      <main class="chapter-layout">
+        <article class="chapter-main">
+          <div class="chapter-header">
+            <nav class="breadcrumb"><a href="index.html">Handbook Home</a> / Chapter 8</nav>
+            <span class="chapter-number">Chapter 8</span>
+            <h1>Repetition and Decoding</h1>
+            <p class="summary">
+              Repetition is a distinct problem because it can emerge even when
+              the training dynamics are otherwise stable. This chapter argues
+              that the first task is diagnostic separation: determine whether the
+              loop is decode-induced or whether the model has actually learned an
+              overly repetition-heavy distribution. Only after that split is made
+              do decoding changes or unlikelihood training make sense.
+              <span class="ref-row">
+                <a class="ref-chip" href="https://openreview.net/forum?id=rygGQyrFvH">Holtzman</a>
+                <a class="ref-chip" href="https://openreview.net/forum?id=SJeYe0NtvH">Welleck</a>
+              </span>
+            </p>
+          </div>
+
+          <section id="why">
+            <h2>Why This Chapter Exists</h2>
+            <p>
+              Teams often overreact to repeating tokens by changing training
+              immediately. That can be a mistake. Holtzman et al. show that
+              decode-time maximization can itself produce repetitive loops even
+              for a fixed model. Welleck et al. show that train-time
+              unlikelihood can help when repetition really is in the learned
+              distribution. The chapter exists to stop those two cases from being
+              conflated.
+              <span class="ref-row">
+                <a class="ref-chip" href="https://openreview.net/forum?id=rygGQyrFvH">Holtzman</a>
+                <a class="ref-chip" href="https://openreview.net/forum?id=SJeYe0NtvH">Welleck</a>
+              </span>
+            </p>
+          </section>
+
+          <section id="intuition">
+            <h2>Intuition</h2>
+            <p>
+              Decoding and training are two different control layers. If greedy
+              or beam-like decoding repeatedly picks the same high-probability
+              continuation, the model may not be numerically unstable at all. If
+              the model repeats across sane stochastic decoders as well, then the
+              learned distribution itself may be the problem. Nucleus sampling is
+              therefore not only a style choice. It is a diagnostic tool.
+            </p>
+          </section>
+
+          <section id="mechanics">
+            <h2>Formal Mechanics</h2>
+            <p>
+              The canonical unlikelihood loss for a set of negative candidates
+              <code>C_t</code> is:
+            </p>
+            <div class="equation">
+              <p><code>L_UL = - Σ_(c ∈ C_t) log(1 - p(c | x_&lt;t))</code></p>
+            </div>
+            <p>
+              This is qualitatively different from decode-side controls such as
+              top-p sampling. Unlikelihood changes the learned distribution.
+              Top-p sampling changes how the next token is selected from the
+              learned distribution.
+            </p>
+          </section>
+
+          <section id="example">
+            <h2>Example</h2>
+            <p>
+              The fastest practical diagnostic sequence is:
+            </p>
+            <ol>
+              <li>Generate with greedy or beam-like settings and note the loop.</li>
+              <li>Generate the same prompt with nucleus sampling.</li>
+              <li>If the loop disappears, treat the problem first as decode-side degeneration.</li>
+              <li>If repetition persists under sane stochastic decoding, inspect <code>[eod]</code> packing and consider unlikelihood training.</li>
+            </ol>
+            <div class="warning">
+              <p>
+                A decode artifact is not evidence that the optimizer or numeric
+                path was broken. That is why this chapter comes after the core
+                stability chapters rather than before them.
+              </p>
+            </div>
+          </section>
+
+          <section id="strengths">
+            <h2>Strengths</h2>
+            <ul>
+              <li>The chapter gives a clean operational decision boundary between decode-side and train-side remedies.</li>
+              <li>Nucleus sampling is lightweight and informative as a diagnosis step.</li>
+              <li>Unlikelihood training provides a principled train-time mechanism rather than only heuristic repetition penalties.</li>
+            </ul>
+          </section>
+
+          <section id="limitations">
+            <h2>Limitations And Failure Cases</h2>
+            <ul>
+              <li>Not every repetitive generation issue is solved by top-p sampling or unlikelihood alone.</li>
+              <li>Boundary-token mistakes and packing artifacts can still masquerade as repetition pathologies.</li>
+              <li>Decode-time remedies can hide a genuinely bad model if they are treated as the only evaluation condition.</li>
+            </ul>
+          </section>
+
+          <section id="practical">
+            <h2>Practical Notes</h2>
+            <p>
+              Treat nucleus sampling as a first diagnostic before changing
+              training. Verify explicit <code>[eod]</code> handling. If
+              repetition remains under sane sampling, then unlikelihood training
+              becomes a serious option. If repetition disappears once decoding is
+              changed, do not immediately complicate the training objective.
+              <span class="ref-row">
+                <a class="ref-chip" href="https://openreview.net/forum?id=rygGQyrFvH">Holtzman</a>
+                <a class="ref-chip" href="https://openreview.net/forum?id=SJeYe0NtvH">Welleck</a>
+                <a class="ref-chip" href="https://jmlr.org/papers/v24/22-1144.html">PaLM</a>
+              </span>
+            </p>
+          </section>
+
+          <section id="related">
+            <h2>Related Chapters</h2>
+            <p>
+              The final chapter steps back from default recommendations and asks
+              what the frontier methods add beyond the current public baseline.
+            </p>
+          </section>
+
+          <nav class="chapter-nav">
+            <div class="nav-card">
+              <span class="nav-label">Previous</span>
+              <a href="07-numeric-path-and-optimizer-hygiene.html">Chapter 7: Numeric Path and Optimizer Hygiene</a>
+            </div>
+            <div class="nav-card">
+              <span class="nav-label">Next</span>
+              <a href="09-frontier-methods-and-open-questions.html">Chapter 9: Frontier Methods and Open Questions</a>
+            </div>
+          </nav>
+        </article>
+
+        <aside class="chapter-toc-card">
+          <h2 class="toc-heading">On This Page</h2>
+          <ol>
+            <li><a href="#why">Why this chapter exists</a></li>
+            <li><a href="#intuition">Intuition</a></li>
+            <li><a href="#mechanics">Formal mechanics</a></li>
+            <li><a href="#example">Example</a></li>
+            <li><a href="#strengths">Strengths</a></li>
+            <li><a href="#limitations">Limitations</a></li>
+            <li><a href="#practical">Practical notes</a></li>
+            <li><a href="#related">Related chapters</a></li>
+          </ol>
+        </aside>
+      </main>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,568 @@
+:root {
+  --bg: #f4efe6;
+  --paper: #fbf8f1;
+  --paper-strong: #fffdf8;
+  --ink: #1d1a17;
+  --muted: #625a52;
+  --line: #d9cfc1;
+  --accent-red: #a33b2b;
+  --accent-blue: #1e5b7a;
+  --accent-amber: #b98226;
+  --accent-sage: #68735a;
+  --shadow: 0 20px 55px rgba(63, 46, 26, 0.08);
+  --radius: 22px;
+  --radius-sm: 14px;
+  --nav-width: 17.5rem;
+  --toc-width: 15rem;
+  --content-max: 74rem;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background:
+    radial-gradient(circle at top right, rgba(30, 91, 122, 0.08), transparent 28rem),
+    radial-gradient(circle at top left, rgba(163, 59, 43, 0.06), transparent 24rem),
+    linear-gradient(180deg, #f7f1e8 0%, var(--bg) 100%);
+  color: var(--ink);
+  font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+  line-height: 1.72;
+}
+
+a {
+  color: var(--accent-blue);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+code {
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 0.93em;
+  background: rgba(30, 91, 122, 0.08);
+  border-radius: 0.35rem;
+  padding: 0.08rem 0.35rem;
+}
+
+p,
+ul,
+ol {
+  margin-top: 0;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  vertical-align: top;
+  text-align: left;
+  padding: 0.78rem 0.85rem;
+  border-bottom: 1px solid rgba(217, 207, 193, 0.9);
+}
+
+th {
+  font: 700 0.82rem/1.3 "Avenir Next Condensed", "Franklin Gothic Medium", "Trebuchet MS", sans-serif;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--accent-red);
+}
+
+.book-topbar,
+.global-nav,
+.chapter-toc-card,
+.paper-card,
+.quick-card,
+.chapter-main,
+.frontmatter-panel,
+.chapter-nav,
+.matrix-wrap,
+.chapter-list-card,
+.appendix-table,
+.note,
+.warning {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(255, 252, 246, 0.95));
+  border: 1px solid rgba(217, 207, 193, 0.95);
+  box-shadow: var(--shadow);
+}
+
+.book-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  backdrop-filter: blur(16px);
+  border-left: 0;
+  border-right: 0;
+  border-top: 0;
+  background: rgba(251, 248, 241, 0.9);
+  box-shadow: none;
+}
+
+.book-topbar-inner {
+  width: min(calc(100% - 2rem), 92rem);
+  margin: 0 auto;
+  padding: 0.95rem 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.brand {
+  display: flex;
+  flex-direction: column;
+  gap: 0.16rem;
+}
+
+.eyebrow,
+.section-label,
+.chip,
+.nav-label {
+  font: 700 0.72rem/1.2 "Avenir Next Condensed", "Franklin Gothic Medium", "Trebuchet MS", sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+}
+
+.eyebrow,
+.section-label,
+.nav-label {
+  color: var(--accent-red);
+}
+
+.brand strong,
+h1,
+h2,
+h3,
+h4,
+.toc-heading,
+.global-nav h2,
+.chapter-card-title {
+  font-family: "Avenir Next Condensed", "Franklin Gothic Medium", "Trebuchet MS", sans-serif;
+  letter-spacing: 0.01em;
+}
+
+.brand strong {
+  font-size: 1rem;
+}
+
+.top-links {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.top-links a,
+.global-nav a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border-radius: 999px;
+  padding: 0.48rem 0.8rem;
+  color: var(--muted);
+  font: 600 0.88rem/1.2 "Avenir Next Condensed", "Franklin Gothic Medium", "Trebuchet MS", sans-serif;
+}
+
+.top-links a.active,
+.top-links a:hover,
+.global-nav a.active,
+.global-nav a:hover {
+  color: var(--ink);
+  background: rgba(30, 91, 122, 0.08);
+  text-decoration: none;
+}
+
+.page-shell {
+  width: min(calc(100% - 2rem), 92rem);
+  margin: 1.2rem auto 4rem;
+}
+
+.handbook-shell {
+  display: grid;
+  grid-template-columns: var(--nav-width) minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.global-nav {
+  position: sticky;
+  top: 5.25rem;
+  border-radius: var(--radius);
+  padding: 1rem;
+}
+
+.global-nav h2,
+.chapter-toc-card h2 {
+  margin: 0 0 0.85rem;
+  font-size: 1.05rem;
+}
+
+.global-nav ol,
+.chapter-toc-card ol {
+  margin: 0;
+  padding-left: 1.25rem;
+}
+
+.global-nav li,
+.chapter-toc-card li {
+  margin: 0.28rem 0;
+}
+
+.global-nav a {
+  display: block;
+  border-radius: 12px;
+  padding: 0.38rem 0.45rem;
+}
+
+.frontmatter {
+  display: grid;
+  gap: 1rem;
+}
+
+.frontmatter-panel,
+.chapter-main,
+.chapter-nav,
+.chapter-toc-card,
+.matrix-wrap,
+.appendix-table,
+.note,
+.warning {
+  border-radius: var(--radius);
+}
+
+.frontmatter-hero,
+.chapter-main {
+  padding: 1.35rem 1.45rem;
+}
+
+.frontmatter-panel {
+  padding: 1.2rem 1.3rem;
+}
+
+.frontmatter-grid,
+.home-columns,
+.chapter-list,
+.path-grid,
+.callout-grid,
+.appendix-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.frontmatter-grid {
+  grid-template-columns: 1.35fr 1fr;
+}
+
+.home-columns,
+.path-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.chapter-list {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.frontmatter-hero h1 {
+  margin: 0.3rem 0 0.8rem;
+  font-size: clamp(2.5rem, 4vw, 4.5rem);
+  line-height: 0.94;
+  max-width: 12ch;
+}
+
+.lede,
+.summary {
+  color: var(--muted);
+  font-size: 1.06rem;
+  max-width: 70ch;
+}
+
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.3rem 0.68rem;
+  background: rgba(104, 115, 90, 0.1);
+  color: var(--accent-sage);
+  letter-spacing: 0.05em;
+}
+
+.chip.warn {
+  background: rgba(185, 130, 38, 0.12);
+  color: #8e5f14;
+}
+
+.chip.red {
+  background: rgba(163, 59, 43, 0.1);
+  color: var(--accent-red);
+}
+
+.chip.blue {
+  background: rgba(30, 91, 122, 0.1);
+  color: var(--accent-blue);
+}
+
+.ref-row {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.38rem;
+  margin-left: 0.42rem;
+  vertical-align: middle;
+}
+
+.ref-chip {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.16rem 0.52rem;
+  background: rgba(104, 115, 90, 0.1);
+  color: var(--accent-sage);
+  border: 1px solid rgba(104, 115, 90, 0.16);
+  font: 700 0.66rem/1.2 "Avenir Next Condensed", "Franklin Gothic Medium", "Trebuchet MS", sans-serif;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.ref-chip:hover {
+  background: rgba(30, 91, 122, 0.08);
+  color: var(--accent-blue);
+  text-decoration: none;
+}
+
+.chapter-list-card {
+  padding: 1rem 1.05rem;
+  border-radius: var(--radius);
+}
+
+.chapter-list-card h3 {
+  margin: 0.15rem 0 0.45rem;
+  font-size: 1.28rem;
+}
+
+.chapter-list-card p {
+  margin-bottom: 0.8rem;
+}
+
+.chapter-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--toc-width);
+  gap: 1rem;
+  align-items: start;
+}
+
+.chapter-main {
+  min-width: 0;
+}
+
+.chapter-main h1 {
+  margin: 0.25rem 0 0.55rem;
+  font-size: clamp(2rem, 3vw, 3.1rem);
+  line-height: 0.98;
+}
+
+.chapter-header {
+  padding-bottom: 1rem;
+  margin-bottom: 1.2rem;
+  border-bottom: 1px solid rgba(217, 207, 193, 0.9);
+}
+
+.chapter-number {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.28rem 0.62rem;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--accent-red), #7f291d);
+  color: var(--paper-strong);
+  font: 700 0.75rem/1.2 "Avenir Next Condensed", "Franklin Gothic Medium", "Trebuchet MS", sans-serif;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.breadcrumb {
+  margin-bottom: 0.85rem;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.breadcrumb a {
+  color: var(--muted);
+}
+
+.chapter-main section {
+  margin-bottom: 1.55rem;
+  scroll-margin-top: 6rem;
+}
+
+.chapter-main h2 {
+  margin: 0 0 0.55rem;
+  font-size: 1.55rem;
+}
+
+.chapter-main h3 {
+  margin: 1rem 0 0.45rem;
+  font-size: 1.12rem;
+}
+
+.chapter-main ul,
+.chapter-main ol {
+  padding-left: 1.25rem;
+}
+
+.chapter-main li {
+  margin: 0.32rem 0;
+}
+
+.chapter-toc-card {
+  position: sticky;
+  top: 5.25rem;
+  padding: 1rem;
+}
+
+.chapter-toc-card a {
+  color: var(--muted);
+}
+
+.chapter-toc-card a.active {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.matrix-wrap,
+.appendix-table,
+.note,
+.warning {
+  padding: 1rem 1.05rem;
+  margin: 1rem 0;
+}
+
+.note {
+  background: linear-gradient(180deg, rgba(30, 91, 122, 0.06), rgba(255, 252, 246, 0.95));
+}
+
+.warning {
+  background: linear-gradient(180deg, rgba(163, 59, 43, 0.07), rgba(255, 252, 246, 0.95));
+}
+
+details.evidence {
+  margin: 0.8rem 0;
+  border: 1px solid rgba(217, 207, 193, 0.95);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 252, 246, 0.75);
+  overflow: hidden;
+}
+
+details.evidence summary {
+  cursor: pointer;
+  padding: 0.85rem 1rem;
+  font: 700 0.95rem/1.35 "Avenir Next Condensed", "Franklin Gothic Medium", "Trebuchet MS", sans-serif;
+  color: var(--accent-blue);
+  list-style: none;
+}
+
+details.evidence summary::-webkit-details-marker {
+  display: none;
+}
+
+details.evidence .evidence-body {
+  padding: 0 1rem 1rem;
+}
+
+.equation {
+  padding: 0.9rem 1rem;
+  border-left: 4px solid rgba(30, 91, 122, 0.28);
+  background: rgba(30, 91, 122, 0.05);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  overflow-x: auto;
+}
+
+.chapter-nav {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.05rem;
+}
+
+.nav-card {
+  flex: 1;
+}
+
+.nav-card span {
+  display: block;
+  margin-bottom: 0.18rem;
+  color: var(--accent-red);
+}
+
+.kicker {
+  color: var(--muted);
+  font-style: italic;
+}
+
+.footer-note {
+  margin-top: 1.2rem;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+@media (max-width: 1080px) {
+  .handbook-shell,
+  .chapter-layout,
+  .frontmatter-grid,
+  .home-columns,
+  .path-grid,
+  .chapter-list {
+    grid-template-columns: 1fr;
+  }
+
+  .global-nav,
+  .chapter-toc-card {
+    position: static;
+  }
+}
+
+@media (max-width: 700px) {
+  .page-shell {
+    width: min(calc(100% - 1rem), 92rem);
+  }
+
+  .book-topbar-inner {
+    width: min(calc(100% - 1rem), 92rem);
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .top-links {
+    justify-content: flex-start;
+  }
+
+  .frontmatter-hero,
+  .frontmatter-panel,
+  .chapter-main,
+  .chapter-toc-card,
+  .global-nav,
+  .chapter-nav,
+  .matrix-wrap,
+  .appendix-table,
+  .note,
+  .warning,
+  .chapter-list-card {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}

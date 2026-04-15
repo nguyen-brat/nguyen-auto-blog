@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Chapter 2 - Input Pipeline and Diagnosis</title>
+    <link rel="stylesheet" href="assets/styles.css">
+    <script defer src="assets/app.js"></script>
+  </head>
+  <body>
+    <header class="book-topbar">
+      <div class="book-topbar-inner">
+        <div class="brand">
+          <span class="eyebrow">Chapter 2</span>
+          <strong>Input Pipeline and Diagnosis</strong>
+        </div>
+        <nav class="top-links">
+          <a href="index.html" data-page="index.html">Home</a>
+          <a href="02-input-pipeline-and-diagnosis.html" data-page="02-input-pipeline-and-diagnosis.html">Chapter 2</a>
+          <a href="03-stability-baseline-recipe.html" data-page="03-stability-baseline-recipe.html">Baseline</a>
+          <a href="appendix-sources-and-reproducibility.html" data-page="appendix-sources-and-reproducibility.html">Appendix</a>
+        </nav>
+      </div>
+    </header>
+
+    <div class="page-shell handbook-shell">
+      <aside class="global-nav">
+        <span class="nav-label">Handbook</span>
+        <h2>Ordered Chapters</h2>
+        <ol>
+          <li><a href="01-failure-taxonomy.html" data-page="01-failure-taxonomy.html">Failure Taxonomy</a></li>
+          <li><a href="02-input-pipeline-and-diagnosis.html" data-page="02-input-pipeline-and-diagnosis.html">Input Pipeline and Diagnosis</a></li>
+          <li><a href="03-stability-baseline-recipe.html" data-page="03-stability-baseline-recipe.html">Stability Baseline Recipe</a></li>
+          <li><a href="04-residual-and-depth-geometry.html" data-page="04-residual-and-depth-geometry.html">Residual and Depth Geometry</a></li>
+          <li><a href="05-attention-logit-control.html" data-page="05-attention-logit-control.html">Attention-Logit Control</a></li>
+          <li><a href="06-output-head-stability.html" data-page="06-output-head-stability.html">Output-Head Stability</a></li>
+          <li><a href="07-numeric-path-and-optimizer-hygiene.html" data-page="07-numeric-path-and-optimizer-hygiene.html">Numeric Path and Optimizer Hygiene</a></li>
+          <li><a href="08-repetition-and-decoding.html" data-page="08-repetition-and-decoding.html">Repetition and Decoding</a></li>
+          <li><a href="09-frontier-methods-and-open-questions.html" data-page="09-frontier-methods-and-open-questions.html">Frontier Methods and Open Questions</a></li>
+          <li><a href="appendix-sources-and-reproducibility.html" data-page="appendix-sources-and-reproducibility.html">Appendix</a></li>
+        </ol>
+      </aside>
+
+      <main class="chapter-layout">
+        <article class="chapter-main">
+          <div class="chapter-header">
+            <nav class="breadcrumb"><a href="index.html">Handbook Home</a> / Chapter 2</nav>
+            <span class="chapter-number">Chapter 2</span>
+            <h1>Input Pipeline and Diagnosis</h1>
+            <p class="summary">
+              Stability is not only about architecture. The input pipeline
+              determines the training targets the model sees, and the diagnosis
+              loop determines whether you notice precursor signals before a run
+              becomes expensive to recover. This chapter traces the standard
+              decoder path from packed text blocks <code>[B, T]</code> into the
+              residual stream <code>[B, T, D]</code>, then turns that path into a
+              concrete monitoring checklist.
+              <span class="ref-row">
+                <a class="ref-chip" href="https://jmlr.org/papers/v24/22-1144.html">PaLM</a>
+                <a class="ref-chip" href="https://openreview.net/forum?id=d8w0pmvXbZ">Small-Scale Proxies</a>
+              </span>
+            </p>
+          </div>
+
+          <section id="why">
+            <h2>Why This Chapter Exists</h2>
+            <p>
+              Engineers often jump directly from a spike to optimizer changes.
+              That jump is risky because the apparent optimizer problem may
+              actually be a data-packing issue, a boundary-token issue, or a
+              metric visibility issue. The goal of this chapter is to show that
+              diagnosis begins earlier: with how documents become token blocks
+              and with which statistics you choose to watch during training.
+            </p>
+          </section>
+
+          <section id="intuition">
+            <h2>Intuition</h2>
+            <p>
+              A clean causal-LM pipeline is simple in outline. Documents are
+              tokenized into one long stream, explicit boundary markers such as
+              <code>[eod]</code> are inserted, the stream is packed into fixed
+              windows <code>[B, T]</code>, embeddings turn those windows into
+              <code>[B, T, D]</code>, and the decoder preserves that backbone
+              shape until the LM head yields logits <code>[B, T, V]</code>. The
+              catch is that each of those steps creates different kinds of
+              measurement opportunities and different ways to misread a failure.
+            </p>
+          </section>
+
+          <section id="pipeline">
+            <h2>Formal Mechanics</h2>
+            <p>
+              Let token IDs be <code>input_ids ∈ ℤ^[B, T]</code>. The embedding
+              lookup gives
+            </p>
+            <div class="equation">
+              <p><code>X₀ = E[input_ids] ∈ ℝ^[B, T, D]</code>.</p>
+            </div>
+            <p>
+              Inside each decoder block, the hidden stream preserves the same
+              outer shape while attention materializes per-head tensors
+              <code>Q, K, V ∈ ℝ^[B, H, T, d_h]</code> and attention logits
+              <code>S ∈ ℝ^[B, H, T, T]</code>. The output head finally produces
+              <code>L ∈ ℝ^[B, T, V]</code>. If repetition-aware training is
+              added, each position can also carry a set of negative candidates
+              <code>C_t</code>, often represented as a padded
+              <code>[B, K_neg]</code> structure.
+            </p>
+            <p>
+              Packed-example hygiene matters because the next-token targets
+              depend on where document boundaries are placed. PaLM explicitly
+              concatenates documents, inserts a special <code>[eod]</code> token,
+              and then cuts exact <code>2048</code>-token training sequences.
+              <span class="ref-row">
+                <a class="ref-chip" href="https://jmlr.org/papers/v24/22-1144.html">PaLM</a>
+              </span>
+            </p>
+          </section>
+
+          <section id="example">
+            <h2>Worked Flow Trace</h2>
+            <p>
+              Suppose two short documents are tokenized into one stream:
+            </p>
+            <div class="equation">
+              <p><code>[the, model, trains, smoothly, [eod], then, one, head, spikes, [eod]]</code></p>
+            </div>
+            <p>
+              If the training length is <code>T = 8</code>, one batch element
+              becomes:
+            </p>
+            <div class="equation">
+              <p><code>input_ids[b] = [the, model, trains, smoothly, [eod], then, one, head]</code></p>
+              <p><code>labels[b] = [model, trains, smoothly, [eod], then, one, head, spikes]</code></p>
+            </div>
+            <p>
+              After embedding lookup the model sees
+              <code>X₀ ∈ ℝ^[1, 8, D]</code>. If generation later shows repeated
+              <code>[eod]</code> or strange cross-document continuations, the
+              right question is not only “which optimizer was used?” but also
+              “what targets did packing create and how was end-of-document
+              handled?”
+            </p>
+          </section>
+
+          <section id="diagnosis">
+            <h2>Practical Diagnosis Set</h2>
+            <div class="matrix-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Metric</th>
+                    <th>What it reveals</th>
+                    <th>Why it matters</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Global grad norm</td>
+                    <td>Whether the overall update is exploding</td>
+                    <td>Necessary but too coarse to localize failure</td>
+                  </tr>
+                  <tr>
+                    <td>Embedding-layer grad norm</td>
+                    <td>Whether the embedding path dominates training instability</td>
+                    <td>GLM-130B found this path could be orders of magnitude larger early in training</td>
+                  </tr>
+                  <tr>
+                    <td>Attention entropy per head</td>
+                    <td>Whether a few heads are becoming too sharp</td>
+                    <td>Useful precursor for late spikes</td>
+                  </tr>
+                  <tr>
+                    <td>Max / mean attention logits</td>
+                    <td>Whether attention scores are drifting into dangerous magnitude ranges</td>
+                    <td>Direct evidence for Q/K normalization or soft-capping decisions</td>
+                  </tr>
+                  <tr>
+                    <td><code>logsumexp(logits)</code></td>
+                    <td>Whether the LM head is drifting numerically</td>
+                    <td>Central to deciding whether <code>z-loss</code> or output-head controls are needed</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p>
+              The metric list is synthetic, but each major line item is grounded
+              in the public evidence base.
+              <span class="ref-row">
+                <a class="ref-chip" href="https://www.researchgate.net/publication/364194273_GLM-130B_An_Open_Bilingual_Pre-trained_Model">GLM-130B</a>
+                <a class="ref-chip" href="https://machinelearning.apple.com/research/stabilizing-transformer-training">Entropy Collapse</a>
+                <a class="ref-chip" href="https://openreview.net/forum?id=d8w0pmvXbZ">Small-Scale Proxies</a>
+              </span>
+            </p>
+          </section>
+
+          <section id="strengths">
+            <h2>Strengths</h2>
+            <ul>
+              <li>This pipeline view gives a concrete bridge from data, tensors, and metrics to chapter-specific interventions.</li>
+              <li>It prevents decode-time repetition and packing artifacts from being mistaken for optimizer failures.</li>
+              <li>It makes the diagnosis loop operational: the monitoring set is small enough to run in ordinary training code.</li>
+            </ul>
+          </section>
+
+          <section id="limitations">
+            <h2>Limitations And Failure Cases</h2>
+            <ul>
+              <li>The same metric signature can still arise from different root causes, especially when multiple pathologies co-occur.</li>
+              <li>Public evidence is strongest for text-only dense decoders; omni-model balancing failures remain only narrowly covered here. <code>[MISSING FROM SOURCE]</code></li>
+              <li>The chapter does not replace real run forensics such as checkpoint diffing or optimizer-state inspection.</li>
+            </ul>
+          </section>
+
+          <section id="practical">
+            <h2>Practical Notes</h2>
+            <p>
+              If you must choose only a few metrics, prioritize attention
+              entropy, <code>logsumexp(logits)</code>, and embedding-layer grad
+              norm in addition to total loss. Those three are the most useful
+              bridge between a vague symptom and a mechanism family. Also keep a
+              recovery policy ready. PaLM’s public run history makes clear that
+              even a strong preventive recipe benefits from checkpoint rollback
+              and selective data-batch skipping when rare spikes still occur.
+              <span class="ref-row">
+                <a class="ref-chip" href="https://jmlr.org/papers/v24/22-1144.html">PaLM</a>
+                <a class="ref-chip" href="https://openreview.net/forum?id=d8w0pmvXbZ">Small-Scale Proxies</a>
+              </span>
+            </p>
+
+            <details class="evidence">
+              <summary>Evidence Notes</summary>
+              <div class="evidence-body">
+                <p>
+                  The small-scale-proxy literature is especially valuable here
+                  because it argues that some instability regimes can be detected
+                  from activation and gradient-scaling patterns before complete
+                  divergence. That is exactly the kind of evidence needed to make
+                  the metric set more than a logging superstition.
+                </p>
+              </div>
+            </details>
+          </section>
+
+          <section id="next">
+            <h2>Related Chapters</h2>
+            <p>
+              The next chapter turns the diagnostic view into a concrete default
+              recipe. Chapters 4 through 7 then explain why each major piece of
+              that recipe exists.
+            </p>
+          </section>
+
+          <nav class="chapter-nav">
+            <div class="nav-card">
+              <span class="nav-label">Previous</span>
+              <a href="01-failure-taxonomy.html">Chapter 1: Failure Taxonomy</a>
+            </div>
+            <div class="nav-card">
+              <span class="nav-label">Next</span>
+              <a href="03-stability-baseline-recipe.html">Chapter 3: Stability Baseline Recipe</a>
+            </div>
+          </nav>
+        </article>
+
+        <aside class="chapter-toc-card">
+          <h2 class="toc-heading">On This Page</h2>
+          <ol>
+            <li><a href="#why">Why this chapter exists</a></li>
+            <li><a href="#intuition">Intuition</a></li>
+            <li><a href="#pipeline">Formal mechanics</a></li>
+            <li><a href="#example">Worked flow trace</a></li>
+            <li><a href="#diagnosis">Diagnosis set</a></li>
+            <li><a href="#strengths">Strengths</a></li>
+            <li><a href="#limitations">Limitations</a></li>
+            <li><a href="#practical">Practical notes</a></li>
+            <li><a href="#next">Related chapters</a></li>
+          </ol>
+        </aside>
+      </main>
+    </div>
+  </body>
+</html>

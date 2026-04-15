@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Chapter 4 - Residual and Depth Geometry</title>
+    <link rel="stylesheet" href="assets/styles.css">
+    <script defer src="assets/app.js"></script>
+  </head>
+  <body>
+    <header class="book-topbar">
+      <div class="book-topbar-inner">
+        <div class="brand">
+          <span class="eyebrow">Chapter 4</span>
+          <strong>Residual and Depth Geometry</strong>
+        </div>
+        <nav class="top-links">
+          <a href="index.html" data-page="index.html">Home</a>
+          <a href="04-residual-and-depth-geometry.html" data-page="04-residual-and-depth-geometry.html">Chapter 4</a>
+          <a href="05-attention-logit-control.html" data-page="05-attention-logit-control.html">Chapter 5</a>
+          <a href="appendix-sources-and-reproducibility.html" data-page="appendix-sources-and-reproducibility.html">Appendix</a>
+        </nav>
+      </div>
+    </header>
+
+    <div class="page-shell handbook-shell">
+      <aside class="global-nav">
+        <span class="nav-label">Handbook</span>
+        <h2>Ordered Chapters</h2>
+        <ol>
+          <li><a href="01-failure-taxonomy.html" data-page="01-failure-taxonomy.html">Failure Taxonomy</a></li>
+          <li><a href="02-input-pipeline-and-diagnosis.html" data-page="02-input-pipeline-and-diagnosis.html">Input Pipeline and Diagnosis</a></li>
+          <li><a href="03-stability-baseline-recipe.html" data-page="03-stability-baseline-recipe.html">Stability Baseline Recipe</a></li>
+          <li><a href="04-residual-and-depth-geometry.html" data-page="04-residual-and-depth-geometry.html">Residual and Depth Geometry</a></li>
+          <li><a href="05-attention-logit-control.html" data-page="05-attention-logit-control.html">Attention-Logit Control</a></li>
+          <li><a href="06-output-head-stability.html" data-page="06-output-head-stability.html">Output-Head Stability</a></li>
+          <li><a href="07-numeric-path-and-optimizer-hygiene.html" data-page="07-numeric-path-and-optimizer-hygiene.html">Numeric Path and Optimizer Hygiene</a></li>
+          <li><a href="08-repetition-and-decoding.html" data-page="08-repetition-and-decoding.html">Repetition and Decoding</a></li>
+          <li><a href="09-frontier-methods-and-open-questions.html" data-page="09-frontier-methods-and-open-questions.html">Frontier Methods and Open Questions</a></li>
+          <li><a href="appendix-sources-and-reproducibility.html" data-page="appendix-sources-and-reproducibility.html">Appendix</a></li>
+        </ol>
+      </aside>
+
+      <main class="chapter-layout">
+        <article class="chapter-main">
+          <div class="chapter-header">
+            <nav class="breadcrumb"><a href="index.html">Handbook Home</a> / Chapter 4</nav>
+            <span class="chapter-number">Chapter 4</span>
+            <h1>Residual and Depth Geometry</h1>
+            <p class="summary">
+              This chapter covers the oldest and still most important stability
+              distinction in Transformer training: Post-LN versus Pre-LN, and
+              the broader question of how residual updates scale with depth. The
+              main conclusion is pragmatic. Pre-LN or a closely related RMSNorm
+              design should be the default. DeepNorm or large-shortcut designs
+              become necessary only when depth or long-run amplification still
+              remains a problem.
+              <span class="ref-row">
+                <a class="ref-chip" href="https://www.microsoft.com/en-us/research/publication/on-layer-normalization-in-the-transformer-architecture/">Xiong 2020</a>
+                <a class="ref-chip" href="https://arxiv.org/abs/2203.00555">DeepNet</a>
+                <a class="ref-chip" href="https://openreview.net/forum?id=52YBEzcI0l">Spike No More</a>
+              </span>
+            </p>
+          </div>
+
+          <section id="why">
+            <h2>Why This Chapter Exists</h2>
+            <p>
+              Many training failures are easiest to prevent before they appear,
+              by choosing residual geometry that does not create bad gradients at
+              initialization and does not quietly amplify updates across many
+              layers. The chapter exists because teams sometimes treat this as an
+              architectural taste issue when the public literature treats it as a
+              first-order stability choice.
+            </p>
+          </section>
+
+          <section id="intuition">
+            <h2>Intuition</h2>
+            <p>
+              The residual stream is the backbone that carries
+              <code>[B, T, D]</code> hidden states through the network. If the
+              sublayer updates are too aggressive relative to the shortcut, then
+              gradients and activations can become hard to manage. Pre-LN helps
+              early because normalization happens before the sublayer. DeepNorm
+              helps later or deeper by explicitly making the shortcut large
+              relative to the new update.
+            </p>
+          </section>
+
+          <section id="mechanics">
+            <h2>Formal Mechanics</h2>
+            <p>
+              A standard Pre-LN block can be written as:
+            </p>
+            <div class="equation">
+              <p><code>u_l = x_l + Attn(Norm(x_l))</code></p>
+              <p><code>x_(l+1) = u_l + MLP(Norm(u_l))</code></p>
+            </div>
+            <p>
+              By contrast, the DeepNorm form reported in GLM-130B is:
+            </p>
+            <div class="equation">
+              <p><code>DeepNorm(x) = LayerNorm(αx + Network(x))</code></p>
+              <p><code>α = √(2N)</code></p>
+            </div>
+            <p>
+              GLM-130B further reports scaling Xavier initialization for
+              <code>ffn</code>, <code>v_proj</code>, and <code>out_proj</code> by
+              <code>(2N)^(-1/2)</code>. Some coefficient variants across
+              Transformer families remain <code>[UNCERTAIN]</code> in the public
+              evidence currently gathered here, but the large-shortcut principle
+              is clear across DeepNet, GLM-130B, and <em>Spike No More</em>.
+              <span class="ref-row">
+                <a class="ref-chip" href="https://arxiv.org/abs/2203.00555">DeepNet</a>
+                <a class="ref-chip" href="https://www.researchgate.net/publication/364194273_GLM-130B_An_Open_Bilingual_Pre-trained_Model">GLM-130B</a>
+                <a class="ref-chip" href="https://openreview.net/forum?id=52YBEzcI0l">Spike No More</a>
+              </span>
+            </p>
+          </section>
+
+          <section id="example">
+            <h2>Example</h2>
+            <p>
+              The simplest decision rule is this: if a decoder stack is modest in
+              depth and still using Post-LN, switching to Pre-LN or an RMSNorm
+              variant is the first architectural change. If the stack is already
+              Pre-LN but still exhibits long-horizon amplification or depth-heavy
+              late spikes, then DeepNorm or another large-shortcut design becomes
+              the next structural move.
+            </p>
+            <div class="note">
+              <p>
+                GLM-130B adds one more concrete lesson: the embedding path can be
+                its own failure channel. Their report states that shrinking the
+                embedding gradient by a factor of <code>0.1</code> solved most
+                numerical-instability problems in that stack.
+                <span class="ref-row">
+                  <a class="ref-chip" href="https://www.researchgate.net/publication/364194273_GLM-130B_An_Open_Bilingual_Pre-trained_Model">GLM-130B</a>
+                </span>
+              </p>
+            </div>
+          </section>
+
+          <section id="strengths">
+            <h2>Strengths</h2>
+            <ul>
+              <li>Pre-LN has strong theoretical and practical support as a default baseline.</li>
+              <li>DeepNorm gives a principled path to much deeper stable stacks.</li>
+              <li>The family directly addresses gradient behavior rather than only constraining bad updates after they occur.</li>
+            </ul>
+          </section>
+
+          <section id="limitations">
+            <h2>Limitations And Failure Cases</h2>
+            <ul>
+              <li>Residual geometry alone does not solve attention entropy collapse or output-logit divergence.</li>
+              <li>DeepNorm introduces extra tuning burden and may be needless complexity for shallow or mid-depth stacks.</li>
+              <li>The exact coefficient mapping across all architecture variants remains partly <code>[UNCERTAIN]</code> without a fuller appendix pass.</li>
+            </ul>
+          </section>
+
+          <section id="practical">
+            <h2>Practical Notes</h2>
+            <p>
+              Treat Pre-LN as the default and DeepNorm as the escalation. Do not
+              reverse that order unless you are inheriting a fixed architecture
+              and already know that depth is the binding constraint. Also watch
+              the embedding layer separately. A single outlier layer family can
+              dominate stability behavior even when the rest of the residual
+              stream looks acceptable.
+            </p>
+          </section>
+
+          <section id="related">
+            <h2>Related Chapters</h2>
+            <p>
+              If residual geometry is already sane but late spikes remain, the
+              next chapter is the more likely explanation: attention-logit
+              collapse.
+            </p>
+          </section>
+
+          <nav class="chapter-nav">
+            <div class="nav-card">
+              <span class="nav-label">Previous</span>
+              <a href="03-stability-baseline-recipe.html">Chapter 3: Stability Baseline Recipe</a>
+            </div>
+            <div class="nav-card">
+              <span class="nav-label">Next</span>
+              <a href="05-attention-logit-control.html">Chapter 5: Attention-Logit Control</a>
+            </div>
+          </nav>
+        </article>
+
+        <aside class="chapter-toc-card">
+          <h2 class="toc-heading">On This Page</h2>
+          <ol>
+            <li><a href="#why">Why this chapter exists</a></li>
+            <li><a href="#intuition">Intuition</a></li>
+            <li><a href="#mechanics">Formal mechanics</a></li>
+            <li><a href="#example">Example</a></li>
+            <li><a href="#strengths">Strengths</a></li>
+            <li><a href="#limitations">Limitations</a></li>
+            <li><a href="#practical">Practical notes</a></li>
+            <li><a href="#related">Related chapters</a></li>
+          </ol>
+        </aside>
+      </main>
+    </div>
+  </body>
+</html>

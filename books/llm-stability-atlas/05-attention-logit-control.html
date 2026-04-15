@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Chapter 5 - Attention-Logit Control</title>
+    <link rel="stylesheet" href="assets/styles.css">
+    <script defer src="assets/app.js"></script>
+  </head>
+  <body>
+    <header class="book-topbar">
+      <div class="book-topbar-inner">
+        <div class="brand">
+          <span class="eyebrow">Chapter 5</span>
+          <strong>Attention-Logit Control</strong>
+        </div>
+        <nav class="top-links">
+          <a href="index.html" data-page="index.html">Home</a>
+          <a href="05-attention-logit-control.html" data-page="05-attention-logit-control.html">Chapter 5</a>
+          <a href="06-output-head-stability.html" data-page="06-output-head-stability.html">Chapter 6</a>
+          <a href="appendix-sources-and-reproducibility.html" data-page="appendix-sources-and-reproducibility.html">Appendix</a>
+        </nav>
+      </div>
+    </header>
+
+    <div class="page-shell handbook-shell">
+      <aside class="global-nav">
+        <span class="nav-label">Handbook</span>
+        <h2>Ordered Chapters</h2>
+        <ol>
+          <li><a href="01-failure-taxonomy.html" data-page="01-failure-taxonomy.html">Failure Taxonomy</a></li>
+          <li><a href="02-input-pipeline-and-diagnosis.html" data-page="02-input-pipeline-and-diagnosis.html">Input Pipeline and Diagnosis</a></li>
+          <li><a href="03-stability-baseline-recipe.html" data-page="03-stability-baseline-recipe.html">Stability Baseline Recipe</a></li>
+          <li><a href="04-residual-and-depth-geometry.html" data-page="04-residual-and-depth-geometry.html">Residual and Depth Geometry</a></li>
+          <li><a href="05-attention-logit-control.html" data-page="05-attention-logit-control.html">Attention-Logit Control</a></li>
+          <li><a href="06-output-head-stability.html" data-page="06-output-head-stability.html">Output-Head Stability</a></li>
+          <li><a href="07-numeric-path-and-optimizer-hygiene.html" data-page="07-numeric-path-and-optimizer-hygiene.html">Numeric Path and Optimizer Hygiene</a></li>
+          <li><a href="08-repetition-and-decoding.html" data-page="08-repetition-and-decoding.html">Repetition and Decoding</a></li>
+          <li><a href="09-frontier-methods-and-open-questions.html" data-page="09-frontier-methods-and-open-questions.html">Frontier Methods and Open Questions</a></li>
+          <li><a href="appendix-sources-and-reproducibility.html" data-page="appendix-sources-and-reproducibility.html">Appendix</a></li>
+        </ol>
+      </aside>
+
+      <main class="chapter-layout">
+        <article class="chapter-main">
+          <div class="chapter-header">
+            <nav class="breadcrumb"><a href="index.html">Handbook Home</a> / Chapter 5</nav>
+            <span class="chapter-number">Chapter 5</span>
+            <h1>Attention-Logit Control</h1>
+            <p class="summary">
+              Some of the most frustrating LM failures are late and abrupt:
+              training looks healthy, then a few heads sharpen, entropy falls,
+              and the run becomes unstable. This chapter explains why attention
+              logits are a distinct control surface and compares the three most
+              relevant public families: Q/K normalization, soft-capping, and
+              <code>sigmaReparam</code>.
+              <span class="ref-row">
+                <a class="ref-chip" href="https://machinelearning.apple.com/research/stabilizing-transformer-training">Entropy Collapse</a>
+                <a class="ref-chip" href="https://huggingface.co/docs/transformers/en/model_doc/olmo2">OLMo 2 docs</a>
+                <a class="ref-chip" href="https://huggingface.co/docs/transformers/model_doc/gemma2">Gemma 2 docs</a>
+              </span>
+            </p>
+          </div>
+
+          <section id="why">
+            <h2>Why This Chapter Exists</h2>
+            <p>
+              Late spikes are often misread as “optimizer weirdness.” The
+              attention-entropy literature offers a sharper explanation: if
+              attention logits grow too large, softmax becomes too peaked and the
+              training dynamics can destabilize quickly. This chapter exists to
+              explain why constraining the logits before softmax is often cleaner
+              than only reacting after bad gradients appear.
+            </p>
+          </section>
+
+          <section id="intuition">
+            <h2>Intuition</h2>
+            <p>
+              Attention builds a distribution from pairwise scores. If those
+              scores become extreme, the distribution becomes too sharp, a small
+              number of positions dominate, entropy collapses, and gradients can
+              become brittle. Attention-logit controls all attack the same place:
+              the tensor <code>S ∈ ℝ^[B, H, T, T]</code> before the softmax.
+            </p>
+          </section>
+
+          <section id="mechanics">
+            <h2>Formal Mechanics</h2>
+            <p>
+              In a standard decoder block,
+            </p>
+            <div class="equation">
+              <p><code>S = (QKᵀ / √d_h) + M</code></p>
+            </div>
+            <p>
+              where <code>Q, K ∈ ℝ^[B, H, T, d_h]</code> and
+              <code>M</code> is the causal mask. Three intervention families are
+              most relevant:
+            </p>
+            <ul>
+              <li><strong>Q/K normalization:</strong> normalize Q and K before the dot product, as documented for OLMo 2.</li>
+              <li><strong>Soft-capping:</strong> transform logits with <code>c · tanh(S / c)</code>, as exposed in Gemma 2 docs.</li>
+              <li><strong><code>sigmaReparam</code>:</strong> use spectral-normalized reparameterization to discourage entropy collapse.</li>
+            </ul>
+          </section>
+
+          <section id="example">
+            <h2>Example</h2>
+            <p>
+              Soft-capping is the easiest concrete example because the public
+              numbers are explicit. Gemma 2 exposes:
+              <span class="ref-row">
+                <a class="ref-chip" href="https://huggingface.co/docs/transformers/model_doc/gemma2">Gemma 2 docs</a>
+                <a class="ref-chip" href="https://huggingface.co/blog/gemma2">Gemma 2 blog</a>
+              </span>
+            </p>
+            <div class="equation">
+              <p><code>attn_logit_softcapping = 50.0</code></p>
+              <p><code>final_logit_softcapping = 30.0</code></p>
+            </div>
+            <p>
+              This gives a simple engineering story: small logits pass almost
+              linearly, but very large ones are bounded before they create
+              extreme softmax sharpness. Q/K normalization pursues a similar
+              practical end with a lighter structural change.
+            </p>
+          </section>
+
+          <section id="strengths">
+            <h2>Strengths</h2>
+            <ul>
+              <li>These methods target a concrete precursor variable rather than a downstream symptom.</li>
+              <li>Q/K normalization is especially lightweight for modern decoder stacks.</li>
+              <li>Soft-capping provides an explicit magnitude bound that is easy to explain and instrument.</li>
+            </ul>
+          </section>
+
+          <section id="limitations">
+            <h2>Limitations And Failure Cases</h2>
+            <ul>
+              <li>No single public benchmark in this bundle cleanly ranks Q/K normalization, soft-capping, and <code>sigmaReparam</code> on the same dense LM backbone.</li>
+              <li>These controls do not solve output-head drift or numeric-path fragility by themselves.</li>
+              <li>Some implementations may complicate kernel paths or add extra elementwise overhead.</li>
+            </ul>
+          </section>
+
+          <section id="practical">
+            <h2>Practical Notes</h2>
+            <p>
+              Q/K normalization is the easiest default if attention metrics show
+              drift and you want a minimal architectural change. Soft-capping is
+              attractive when you want an explicit bound and already have a
+              kernel path that tolerates it. <code>sigmaReparam</code> is the
+              most theory-heavy option and may be more attractive when the goal
+              is to study entropy behavior directly rather than only patch a
+              production training stack.
+              <span class="ref-row">
+                <a class="ref-chip" href="https://huggingface.co/docs/transformers/en/model_doc/olmo2">OLMo 2 docs</a>
+                <a class="ref-chip" href="https://huggingface.co/blog/gemma2">Gemma 2 blog</a>
+                <a class="ref-chip" href="https://machinelearning.apple.com/research/stabilizing-transformer-training">Entropy Collapse</a>
+              </span>
+            </p>
+
+            <details class="evidence">
+              <summary>Evidence Notes</summary>
+              <div class="evidence-body">
+                <p>
+                  The strongest public conceptual anchor remains the attention
+                  entropy-collapse paper, while the strongest open implementation
+                  anchor for a current LM recipe is OLMo 2 documentation. That is
+                  enough to justify this chapter, but not enough to claim one
+                  universal winner across all scales and contexts.
+                </p>
+              </div>
+            </details>
+          </section>
+
+          <section id="related">
+            <h2>Related Chapters</h2>
+            <p>
+              If attention metrics look normal but the LM head still drifts, the
+              next chapter is the more relevant one: output-head stability.
+            </p>
+          </section>
+
+          <nav class="chapter-nav">
+            <div class="nav-card">
+              <span class="nav-label">Previous</span>
+              <a href="04-residual-and-depth-geometry.html">Chapter 4: Residual and Depth Geometry</a>
+            </div>
+            <div class="nav-card">
+              <span class="nav-label">Next</span>
+              <a href="06-output-head-stability.html">Chapter 6: Output-Head Stability</a>
+            </div>
+          </nav>
+        </article>
+
+        <aside class="chapter-toc-card">
+          <h2 class="toc-heading">On This Page</h2>
+          <ol>
+            <li><a href="#why">Why this chapter exists</a></li>
+            <li><a href="#intuition">Intuition</a></li>
+            <li><a href="#mechanics">Formal mechanics</a></li>
+            <li><a href="#example">Example</a></li>
+            <li><a href="#strengths">Strengths</a></li>
+            <li><a href="#limitations">Limitations</a></li>
+            <li><a href="#practical">Practical notes</a></li>
+            <li><a href="#related">Related chapters</a></li>
+          </ol>
+        </aside>
+      </main>
+    </div>
+  </body>
+</html>
