@@ -271,14 +271,14 @@ h4,
 .chapter-main h1,
 .frontmatter h1 {
   margin: 0.32rem 0 0.85rem;
-  font-size: clamp(2rem, 3vw, 3rem);
+  font-size: 2.45rem;
   line-height: 1.04;
 }
 
 .chapter-main h2,
 .frontmatter h2 {
   margin: 0 0 0.65rem;
-  font-size: clamp(1.4rem, 2vw, 1.95rem);
+  font-size: 1.72rem;
 }
 
 .chapter-main h3 {
@@ -455,6 +455,16 @@ details.evidence summary {
 }
 
 @media (max-width: 760px) {
+  .chapter-main h1,
+  .frontmatter h1 {
+    font-size: 2rem;
+  }
+
+  .chapter-main h2,
+  .frontmatter h2 {
+    font-size: 1.5rem;
+  }
+
   .frontmatter-grid,
   .part-grid,
   .reading-paths,
