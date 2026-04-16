@@ -1,1 +1,141 @@
-$(sed -n '1,240p' /home/nguyen/claude_research/reports/llm-stability-atlas/10-frontier-methods-and-open-questions.html)
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Frontier Methods and Open Questions</title>
+    <link rel="stylesheet" href="assets/styles.css">
+    <script defer src="assets/app.js"></script>
+  </head>
+  <body>
+    <header class="book-topbar">
+      <div class="book-topbar-inner">
+        <div class="brand">
+          <span class="eyebrow">Part IV. Degeneration And Frontier</span>
+          <strong>Chapter 10. Frontier Methods and Open Questions</strong>
+        </div>
+        <nav class="top-links">
+          <a href="index.html" data-page="index.html">Home</a>
+          <a href="09-repetition-and-decoding.html" data-page="09-repetition-and-decoding.html">Previous</a>
+          <a href="10-frontier-methods-and-open-questions.html" data-page="10-frontier-methods-and-open-questions.html">Chapter 10</a>
+          <a href="appendix-sources-and-runtime-evidence.html" data-page="appendix-sources-and-runtime-evidence.html">Appendix</a>
+        </nav>
+      </div>
+    </header>
+    <div class="page-shell handbook-shell">
+      <aside class="global-nav">
+        <span class="nav-label">Part IV</span>
+        <h2>Degeneration And Frontier</h2>
+        <div class="part-nav">
+          <span class="part-label">Current Part</span>
+          <a href="09-repetition-and-decoding.html" data-page="09-repetition-and-decoding.html">09 Repetition and Decoding</a>
+          <a href="10-frontier-methods-and-open-questions.html" data-page="10-frontier-methods-and-open-questions.html">10 Frontier Methods and Open Questions</a>
+          <a href="appendix-sources-and-runtime-evidence.html" data-page="appendix-sources-and-runtime-evidence.html">Appendix</a>
+        </div>
+      </aside>
+      <main class="chapter-layout">
+        <article class="chapter-main">
+          <div class="chapter-header">
+            <nav class="breadcrumb"><a href="index.html">Handbook Home</a> / Part IV / Chapter 10</nav>
+            <span class="chapter-number">Chapter 10</span>
+            <h1>Frontier Methods and Open Questions</h1>
+            <p class="summary">
+              This closing chapter is organized by maturity, not novelty. SPAM, OEC, and omni-transfer are interesting, but the rerun bundle does not support teaching them as co-equal defaults beside the baseline stack.
+              <span class="ref-row">
+                <a class="ref-chip" href="https://arxiv.org/abs/2501.06842">SPAM</a>
+                <a class="ref-chip" href="https://arxiv.org/abs/2601.02031">OEC</a>
+              </span>
+            </p>
+          </div>
+
+          <section id="why">
+            <h2>Why This Chapter Exists</h2>
+            <p>
+              A good technical handbook should end by shrinking, not inflating, the frontier. This chapter exists to keep promising ideas visible without allowing them to contaminate the default recipe. The principle is simple: novelty should not outrank maturity.
+            </p>
+          </section>
+
+          <section id="maturity-frame">
+            <h2>Maturity Frame</h2>
+            <p>
+              The book uses three relevant maturity labels here. <strong>Full</strong> means a method could plausibly sit in the default stack. <strong>Partial</strong> means the mechanism is real but the evidence is not yet broad enough for default status. <strong>Frontier-thin</strong> means the idea is interesting, but a full reference chapter would currently require too much inference or unsupported connective tissue.
+            </p>
+          </section>
+
+          <section id="spam">
+            <h2>SPAM</h2>
+            <p>
+              Spike-Aware Adam with Momentum Reset is a credible optimizer-level response to rare spikes. The reason it remains outside the default stack in this handbook is not that optimizer innovation is unimportant. It is that the baseline recipe and surface-specific controls still explain more of the current public evidence more cheaply. SPAM therefore belongs as a targeted escalation for runs that continue to incur rare expensive spikes after baseline hygiene is already good.
+            </p>
+          </section>
+
+          <section id="oec">
+            <h2>OEC</h2>
+            <p>
+              OEC is the most interesting frontier output-head idea in the current rerun because it tries to correct the geometry of the output embedding space more directly than <code>z-loss</code>. The reason it remains partial is straightforward: the public large-scale decoder-LM precedent is still weaker than PaLM’s precedent for <code>z-loss</code>.
+            </p>
+          </section>
+
+          <section id="omni-transfer">
+            <h2>Omni Transfer Note</h2>
+            <p>
+              The book retains a narrow inference that decoder-side stability logic likely transfers to omni models, but modality-balancing instability remains under-sourced in this bundle. That is why this topic stays in the frontier chapter rather than being promoted into the verified claim set.
+              <code>[MISSING FROM SOURCE]</code>
+            </p>
+          </section>
+
+          <section id="promotion-criteria">
+            <h2>What Would Promote A Frontier Method</h2>
+            <ul>
+              <li>Matched large-scale public comparisons against baseline methods.</li>
+              <li>Clearer implementation details and failure boundaries in official code or docs.</li>
+              <li>Evidence that the method continues to help once the ordinary baseline stack is already present.</li>
+            </ul>
+          </section>
+
+          <section id="why-restraint-matters">
+            <h2>Why Frontier Restraint Matters</h2>
+            <p>
+              Frontier chapters are where technical books most easily drift into catalogues of fashionable methods. The cost of that drift is real. Once an under-evidenced idea is placed beside the default stack without a maturity distinction, readers naturally overfit to novelty. This chapter therefore argues for an editorial discipline that is also an engineering discipline: methods should earn promotion by surviving comparison against a strong baseline, not by appearing later in time.
+            </p>
+          </section>
+
+          <section id="open-questions">
+            <h2>Open Questions</h2>
+            <ul>
+              <li>Does OEC remain superior to <code>z-loss</code> at frontier text-model scale under otherwise matched training?</li>
+              <li>Which attention-logit control wins under a fixed backbone, optimizer, and precision path?</li>
+              <li>Which public multimodal sources are strong enough to support a real omni-model stability chapter rather than a bounded note?</li>
+            </ul>
+          </section>
+
+          <section id="practical">
+            <h2>Practical Notes</h2>
+            <p>
+              If the stack still lacks baseline controls, skip this chapter. Frontier methods are useful only after the ordinary recipe is already in place and the remaining failure is specific enough to justify added complexity.
+            </p>
+          </section>
+
+          <nav class="chapter-nav">
+            <div class="nav-card"><span class="nav-label">Previous</span><a href="09-repetition-and-decoding.html">Chapter 9: Repetition and Decoding</a></div>
+            <div class="nav-card"><span class="nav-label">Next</span><a href="appendix-sources-and-runtime-evidence.html">Appendix: Sources and Runtime Evidence</a></div>
+          </nav>
+        </article>
+        <aside class="chapter-toc-card">
+          <h2 class="toc-heading">On This Page</h2>
+          <ol>
+            <li><a href="#why">Why this chapter exists</a></li>
+            <li><a href="#maturity-frame">Maturity frame</a></li>
+            <li><a href="#spam">SPAM</a></li>
+            <li><a href="#oec">OEC</a></li>
+            <li><a href="#omni-transfer">Omni transfer note</a></li>
+            <li><a href="#promotion-criteria">Promotion criteria</a></li>
+            <li><a href="#why-restraint-matters">Why restraint matters</a></li>
+            <li><a href="#open-questions">Open questions</a></li>
+            <li><a href="#practical">Practical notes</a></li>
+          </ol>
+        </aside>
+      </main>
+    </div>
+  </body>
+</html>

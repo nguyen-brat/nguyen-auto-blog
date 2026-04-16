@@ -1,1 +1,246 @@
-$(sed -n '1,200p' /home/nguyen/claude_research/reports/llm-stability-atlas/01-failure-taxonomy.html)
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Failure Taxonomy</title>
+    <link rel="stylesheet" href="assets/styles.css">
+    <script defer src="assets/app.js"></script>
+  </head>
+  <body>
+    <header class="book-topbar">
+      <div class="book-topbar-inner">
+        <div class="brand">
+          <span class="eyebrow">Part I. Orientation</span>
+          <strong>Chapter 1. Failure Taxonomy</strong>
+        </div>
+        <nav class="top-links">
+          <a href="index.html" data-page="index.html">Home</a>
+          <a href="01-failure-taxonomy.html" data-page="01-failure-taxonomy.html">Chapter 1</a>
+          <a href="02-diagnosis-and-monitoring.html" data-page="02-diagnosis-and-monitoring.html">Next</a>
+          <a href="appendix-sources-and-runtime-evidence.html" data-page="appendix-sources-and-runtime-evidence.html">Appendix</a>
+        </nav>
+      </div>
+    </header>
+    <div class="page-shell handbook-shell">
+      <aside class="global-nav">
+        <span class="nav-label">Part I</span>
+        <h2>Orientation</h2>
+        <div class="part-nav">
+          <span class="part-label">Current Part</span>
+          <a href="01-failure-taxonomy.html" data-page="01-failure-taxonomy.html">01 Failure Taxonomy</a>
+          <a href="02-diagnosis-and-monitoring.html" data-page="02-diagnosis-and-monitoring.html">02 Diagnosis and Monitoring</a>
+        </div>
+        <div class="part-nav">
+          <span class="part-label">Next Part</span>
+          <a href="03-baseline-recipe.html" data-page="03-baseline-recipe.html">03 Baseline Recipe</a>
+        </div>
+      </aside>
+      <main class="chapter-layout">
+        <article class="chapter-main">
+          <div class="chapter-header">
+            <nav class="breadcrumb"><a href="index.html">Handbook Home</a> / Part I / Chapter 1</nav>
+            <span class="chapter-number">Chapter 1</span>
+            <h1>Failure Taxonomy</h1>
+            <p class="summary">
+              This chapter replaces the phrase “training exploded” with a more useful partition. In the evidence base that survived the rerun, the recurring failure surfaces are residual and norm geometry, attention-logit collapse, output-head divergence, numeric-path failures, and repetition-specific failures that may live in decoding rather than training.
+              <span class="ref-row">
+                <a class="ref-chip" href="https://www.microsoft.com/en-us/research/publication/on-layer-normalization-in-the-transformer-architecture/">Xiong 2020</a>
+                <a class="ref-chip" href="https://machinelearning.apple.com/research/stabilizing-transformer-training">Entropy Collapse</a>
+                <a class="ref-chip" href="https://jmlr.org/papers/v24/22-1144.html">PaLM</a>
+                <a class="ref-chip" href="https://openreview.net/forum?id=rygGQyrFvH">Holtzman</a>
+              </span>
+            </p>
+          </div>
+
+          <section id="why-this-chapter-exists">
+            <h2>Why This Chapter Exists</h2>
+            <p>
+              The most expensive mistake in stability work is often made before any fix is attempted: the failure is classified too broadly. A team sees loss spike, gradients become large, or generations become repetitive and then reaches for the same small set of universal responses: lower the learning rate, clip harder, add a repetition penalty, or restart from an older checkpoint. Those moves are attractive because they are cheap and familiar. They are also frequently category errors. A late spike driven by attention-score sharpening is not the same object as a model that diverges immediately under Post-LN. A model that loops under greedy decoding is not automatically numerically unstable. This chapter exists to stop the rest of the book from becoming a flat list of tricks.
+            </p>
+            <p>
+              The rerun bundle made this point more strongly than the earlier report because the new chapter packets were forced to preserve intervention structure, not just problem labels. That matters here. A taxonomy is only useful if each category points to a different first metric and a different first intervention. Otherwise it is merely cleaner vocabulary.
+            </p>
+          </section>
+
+          <section id="intuition">
+            <h2>Intuition</h2>
+            <p>
+              A decoder LM carries hidden states in the residual stream <code>[B, T, D]</code>. Failures can begin in that stream itself, in distributions derived from it such as attention scores <code>[B, H, T, T]</code> and output logits <code>[B, T, V]</code>, in the numeric path used to compute and update those tensors, or after training in the decoding rule applied at inference time. The reason the taxonomy is operationally useful is that each location surfaces through a different observable. Residual-geometry failures often show up early or under depth stress. Attention failures often announce themselves through collapsing entropy before the loss truly breaks. Output-head failures are better tracked through <code>logsumexp(logits)</code> than by generic gradient summaries. Numeric failures show up as dtype-sensitive instabilities, non-finite values, or optimizer-state brittleness. Decode-side repetition can persist even when the base model is unchanged.
+            </p>
+          </section>
+
+          <section id="five-failure-surfaces">
+            <h2>Five Failure Surfaces</h2>
+            <h3>1. Residual and norm geometry</h3>
+            <p>
+              This surface covers failures where the backbone itself is poorly conditioned. The canonical public example is the Post-LN versus Pre-LN distinction. Xiong et al. analyze why Post-LN creates large expected gradients near the output layer at initialization and why Pre-LN stabilizes those gradients without requiring the same warmup dependence.
+              <span class="ref-row">
+                <a class="ref-chip" href="https://www.microsoft.com/en-us/research/publication/on-layer-normalization-in-the-transformer-architecture/">Xiong 2020</a>
+              </span>
+            </p>
+            <p>
+              In practical terms, this category explains the run that diverges early unless the learning rate is reduced so aggressively that training becomes uncompetitive, and it also explains some late depth-driven amplification patterns once the stack becomes very deep.
+            </p>
+
+            <h3>2. Attention-logit collapse</h3>
+            <p>
+              This surface covers failures where the attention-score path becomes too sharp. The Apple entropy-collapse work is valuable here because it gives a cleaner precursor than “eventually the loss got bad”: attention entropy drops first. That observation is what makes attention-logit controls feel like a real mechanism family rather than a loose collection of implementation tricks.
+              <span class="ref-row">
+                <a class="ref-chip" href="https://machinelearning.apple.com/research/stabilizing-transformer-training">Entropy Collapse</a>
+                <a class="ref-chip" href="https://openreview.net/forum?id=d8w0pmvXbZ">Small-Scale Proxies</a>
+              </span>
+            </p>
+            <p>
+              This category explains the run that looks ordinary for a long interval and then fails abruptly once a small subset of heads becomes extremely peaked. It is precisely the kind of failure that global clipping can coexist with rather than prevent.
+            </p>
+
+            <h3>3. Output-head divergence</h3>
+            <p>
+              This surface covers failures localized more strongly to the LM head than to the trunk. The hidden state <code>[B, T, D]</code> is projected to logits <code>[B, T, V]</code>, and the softmax normalizer can drift into a numerically or geometrically unhealthy regime even when the rest of the network does not yet look obviously broken. This is why <code>z-loss</code> deserves its own chapter rather than being folded into generic optimizer hygiene.
+              <span class="ref-row">
+                <a class="ref-chip" href="https://jmlr.org/papers/v24/22-1144.html">PaLM</a>
+                <a class="ref-chip" href="https://openreview.net/forum?id=d8w0pmvXbZ">Small-Scale Proxies</a>
+              </span>
+            </p>
+
+            <h3>4. Numeric-path failures</h3>
+            <p>
+              This surface covers problems introduced or amplified by finite-precision arithmetic, reduction dtype, softmax dtype, optimizer-state precision, and restart policy. Public training reports make this category impossible to ignore. GLM-130B explicitly kept attention softmax in FP32 under FP16 training and reports embedding-gradient shrink as a successful intervention. PaLM still encountered roughly <code>20</code> irregular loss spikes despite clipping and retained an operational rollback procedure.
+              <span class="ref-row">
+                <a class="ref-chip" href="https://arxiv.org/abs/2210.02414">GLM-130B</a>
+                <a class="ref-chip" href="https://jmlr.org/papers/v24/22-1144.html">PaLM</a>
+              </span>
+            </p>
+
+            <h3>5. Repetition and degeneration</h3>
+            <p>
+              This surface covers a different class of symptom entirely. Repetition may reflect data packing, objective design, or decode-time search. Holtzman et al. show that maximization-oriented decoding can induce repetitive loops even when the base LM is unchanged. Welleck et al. show that train-time unlikelihood can reduce repeated-token behavior directly.
+              <span class="ref-row">
+                <a class="ref-chip" href="https://openreview.net/forum?id=rygGQyrFvH">Holtzman</a>
+                <a class="ref-chip" href="https://openreview.net/forum?id=SJeYe0NtvH">Welleck</a>
+              </span>
+            </p>
+            <p>
+              The practical value of this category is that it prevents a decode-only failure from contaminating architecture diagnosis.
+            </p>
+          </section>
+
+          <section id="failure-signatures">
+            <h2>Failure Signatures And First-Line Responses</h2>
+            <div class="matrix-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Failure family</th>
+                    <th>Typical signature</th>
+                    <th>First metric</th>
+                    <th>First-line fix</th>
+                    <th>Escalation boundary</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Residual / norm geometry</td>
+                    <td>Diverges early or remains fragile under deeper stacks</td>
+                    <td>Initialization-time grad norms</td>
+                    <td>Move to Pre-LN or RMSNorm baseline; keep warmup</td>
+                    <td>Consider DeepNorm only if depth-driven spikes remain</td>
+                  </tr>
+                  <tr>
+                    <td>Attention-logit collapse</td>
+                    <td>Long stable interval, then abrupt spike</td>
+                    <td>Attention entropy and max attention logits</td>
+                    <td>Add Q/K normalization or attention soft-capping</td>
+                    <td>Use stronger residual or optimizer escalation only if entropy control is already present</td>
+                  </tr>
+                  <tr>
+                    <td>Output-head divergence</td>
+                    <td>Logits drift while trunk seems comparatively ordinary</td>
+                    <td><code>logsumexp(logits)</code></td>
+                    <td>Add <code>z-loss = 1e-4 * log^2 Z</code></td>
+                    <td>Evaluate OEC only after the baseline stack is stable</td>
+                  </tr>
+                  <tr>
+                    <td>Numeric path</td>
+                    <td>Infs, NaNs, dtype-sensitive spikes, unstable restarts</td>
+                    <td>Softmax dtype, optimizer-state dtype, non-finite grad fraction</td>
+                    <td>Keep softmax / reductions / optimizer state in FP32 where needed</td>
+                    <td>Only move to optimizer innovation after numeric hygiene is clean</td>
+                  </tr>
+                  <tr>
+                    <td>Repetition / degeneration</td>
+                    <td>Looping generations with otherwise sane curves</td>
+                    <td>Greedy versus nucleus behavior</td>
+                    <td>Test decode-side change before touching training</td>
+                    <td>Add unlikelihood only if repetition survives sane decoding and clean packing</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section id="why-generic-fixes-fail">
+            <h2>Why Generic Fixes Fail</h2>
+            <p>
+              The classic generic move is “lower the learning rate and clip harder.” That may reduce the visible amplitude of many problems, but it does not answer the causal question. If the run is actually failing through attention entropy collapse, lower LR can delay the inevitable while leaving the sharp-score mechanism untouched. If the run is failing through output-head divergence, clipping constrains update size without directly constraining <code>log Z</code>. If the problem is decode-time repetition, changing the optimizer is simply the wrong layer of the system. The purpose of the taxonomy is therefore not elegance. It is to stop these generic responses from being misread as diagnoses.
+            </p>
+          </section>
+
+          <section id="worked-branch">
+            <h2>Worked Diagnostic Branch</h2>
+            <p>
+              Consider the concrete failure the user started from: loss and gradient both decrease for a while, then at some point values explode, and generation later shows repeated tokens. In the taxonomy used here, that description still spans at least three categories. The first branch is whether repetition appears only at decode time. If greedy decoding loops but nucleus sampling does not, the repetition symptom belongs to Chapter 9 even if the training run also had a spike. The second branch is whether the spike had a clean precursor. If attention entropy collapsed before the spike, Chapter 7 is the first mechanism chapter. If entropy looks ordinary but <code>logsumexp(logits)</code> drifts upward, Chapter 8 becomes more relevant. If the failure appears immediately under one normalization geometry and disappears under Pre-LN, the problem belongs much earlier in the book.
+            </p>
+            <p>
+              The important methodological point is that one run can contain multiple symptoms. The taxonomy is still useful because it gives a priority order. Diagnose the first abnormal surface, not the loudest later surface.
+            </p>
+          </section>
+
+          <section id="strengths-and-limitations">
+            <h2>Strengths And Limitations</h2>
+            <p>
+              <strong>Strength.</strong> The taxonomy is strongly supported for decoder LMs and now comes with an intervention boundary for each family. It makes the rest of the handbook navigable and reduces the odds of category-error debugging.
+            </p>
+            <p>
+              <strong>Limitation.</strong> Real runs can involve mixed causes. A low-precision stack can amplify attention or output-head failures. A packing bug can coexist with decode-side repetition. The taxonomy is therefore a diagnostic simplification, not a proof that failures are cleanly separated in nature. The omni-model extension is especially under-sourced in the current bundle, so any modality-balancing axis beyond decoder-side logic remains <code>[MISSING FROM SOURCE]</code>.
+            </p>
+          </section>
+
+          <section id="practical-notes">
+            <h2>Practical Notes</h2>
+            <p>
+              If a team has only one new monitoring task available before the next run, the best investment is to make the taxonomy measurable. Log attention entropy, <code>logsumexp(logits)</code>, one embedding-path gradient norm, and a decode-side comparison. If those are absent, the taxonomy remains intellectually correct but operationally weak.
+            </p>
+            <details class="evidence">
+              <summary>Evidence Notes</summary>
+              <div class="evidence-body">
+                <p>
+                  The strongest anchors for this chapter are Xiong 2020 for initialization geometry, Apple for attention precursors, PaLM for output-head and recovery signals, GLM-130B for numeric-path lessons, and Holtzman plus Welleck for the repetition split. The rerun bundle marks the omni extension as under-sourced and keeps it out of the verified claim set.
+                </p>
+              </div>
+            </details>
+          </section>
+
+          <nav class="chapter-nav">
+            <div class="nav-card"><span class="nav-label">Previous</span><a href="index.html">Handbook Home</a></div>
+            <div class="nav-card"><span class="nav-label">Next</span><a href="02-diagnosis-and-monitoring.html">Chapter 2: Diagnosis and Monitoring</a></div>
+          </nav>
+        </article>
+        <aside class="chapter-toc-card">
+          <h2 class="toc-heading">On This Page</h2>
+          <ol>
+            <li><a href="#why-this-chapter-exists">Why this chapter exists</a></li>
+            <li><a href="#intuition">Intuition</a></li>
+            <li><a href="#five-failure-surfaces">Five failure surfaces</a></li>
+            <li><a href="#failure-signatures">Failure signatures and first-line responses</a></li>
+            <li><a href="#why-generic-fixes-fail">Why generic fixes fail</a></li>
+            <li><a href="#worked-branch">Worked diagnostic branch</a></li>
+            <li><a href="#strengths-and-limitations">Strengths and limitations</a></li>
+            <li><a href="#practical-notes">Practical notes</a></li>
+          </ol>
+        </aside>
+      </main>
+    </div>
+  </body>
+</html>

@@ -1,1 +1,159 @@
-$(sed -n '1,200p' /home/nguyen/claude_research/reports/llm-stability-atlas/05-numeric-path-and-optimizer-hygiene.html)
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Numeric Path and Optimizer Hygiene</title>
+    <link rel="stylesheet" href="assets/styles.css">
+    <script defer src="assets/app.js"></script>
+  </head>
+  <body>
+    <header class="book-topbar">
+      <div class="book-topbar-inner">
+        <div class="brand">
+          <span class="eyebrow">Part II. Stable Defaults</span>
+          <strong>Chapter 5. Numeric Path and Optimizer Hygiene</strong>
+        </div>
+        <nav class="top-links">
+          <a href="index.html" data-page="index.html">Home</a>
+          <a href="04-input-pipeline-and-packing.html" data-page="04-input-pipeline-and-packing.html">Previous</a>
+          <a href="05-numeric-path-and-optimizer-hygiene.html" data-page="05-numeric-path-and-optimizer-hygiene.html">Chapter 5</a>
+          <a href="06-residual-and-depth-geometry.html" data-page="06-residual-and-depth-geometry.html">Next</a>
+        </nav>
+      </div>
+    </header>
+    <div class="page-shell handbook-shell">
+      <aside class="global-nav">
+        <span class="nav-label">Part II</span>
+        <h2>Stable Defaults</h2>
+        <div class="part-nav">
+          <span class="part-label">Current Part</span>
+          <a href="03-baseline-recipe.html" data-page="03-baseline-recipe.html">03 Baseline Recipe</a>
+          <a href="04-input-pipeline-and-packing.html" data-page="04-input-pipeline-and-packing.html">04 Input Pipeline and Packing</a>
+          <a href="05-numeric-path-and-optimizer-hygiene.html" data-page="05-numeric-path-and-optimizer-hygiene.html">05 Numeric Path and Optimizer Hygiene</a>
+        </div>
+      </aside>
+      <main class="chapter-layout">
+        <article class="chapter-main">
+          <div class="chapter-header">
+            <nav class="breadcrumb"><a href="index.html">Handbook Home</a> / Part II / Chapter 5</nav>
+            <span class="chapter-number">Chapter 5</span>
+            <h1>Numeric Path and Optimizer Hygiene</h1>
+            <p class="summary">
+              This is the operational chapter. It argues that clipping, precision choice, optimizer-state dtype, embedding-path outliers, and checkpoint recovery are not implementation footnotes but part of the real stability recipe.
+              <span class="ref-row">
+                <a class="ref-chip" href="https://jmlr.org/papers/v24/22-1144.html">PaLM</a>
+                <a class="ref-chip" href="https://huggingface.co/allenai/OLMo-1B-hf">OLMo</a>
+                <a class="ref-chip" href="https://arxiv.org/abs/2210.02414">GLM-130B</a>
+                <a class="ref-chip" href="https://arxiv.org/abs/2501.06842">SPAM</a>
+              </span>
+            </p>
+          </div>
+
+          <section id="why">
+            <h2>Why This Chapter Exists</h2>
+            <p>
+              Public training reports consistently refuse a romantic view of instability. Architecture matters, but so do reduction dtype, optimizer-state precision, FP16 versus BF16 behavior, and the ability to recover from rare bad events. This chapter exists to prevent teams from treating operational numerics as embarrassing footnotes that can be ignored while architecture work proceeds.
+            </p>
+          </section>
+
+          <section id="core-controls">
+            <h2>Core Controls</h2>
+            <ul>
+              <li><strong>Global grad clip <code>1.0</code>.</strong> Keep it because it is cheap and battle-tested, but do not pretend it directly controls every failure surface.</li>
+              <li><strong>FP32-sensitive reductions and optimizer state.</strong> OLMo exposes FP32 gradient reduction and FP32 optimizer state in its public recipe, which is exactly the sort of detail many shallow reports omit.</li>
+              <li><strong>FP32 attention softmax if the stack needs it.</strong> GLM-130B explicitly used FP32 attention softmax under FP16 training.</li>
+              <li><strong>Embedding-path monitoring.</strong> Large layer-local outliers can matter more than the global norm.</li>
+              <li><strong>Recovery policy.</strong> PaLM’s rollback and data-skip behavior shows that stability recipes need operational recovery, not only prevention.</li>
+            </ul>
+          </section>
+
+          <section id="clipping-not-enough">
+            <h2>Why Clipping Is Necessary But Not Enough</h2>
+            <p>
+              Clipping bounds update magnitude. It does not diagnose why updates became bad. It does not prevent attention entropy collapse. It does not constrain the LM-head normalizer directly. It does not fix a brittle FP16 softmax path. PaLM is the decisive public example because clipping <code>1.0</code> was present and the <code>540B</code> run still encountered roughly <code>20</code> irregular loss spikes.
+              <span class="ref-row">
+                <a class="ref-chip" href="https://jmlr.org/papers/v24/22-1144.html">PaLM</a>
+              </span>
+            </p>
+          </section>
+
+          <section id="precision-table">
+            <h2>Precision Path Table</h2>
+            <div class="matrix-wrap">
+              <table>
+                <thead>
+                  <tr><th>Question</th><th>Safer answer</th><th>Why</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>If BF16 infrastructure is stable, what should be preferred?</td><td>Prefer BF16 with FP32-sensitive reductions where needed</td><td>Usually reduces the amount of numeric heroics later</td></tr>
+                  <tr><td>If forced into FP16, what should stay conservative?</td><td>Attention softmax, reductions, optimizer state</td><td>GLM-130B and open recipes imply these paths are fragile</td></tr>
+                  <tr><td>If non-finite values appear, what to inspect first?</td><td>Dtype and reduction path before architecture redesign</td><td>The failure may be numeric, not conceptual</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section id="embedding-hotspot">
+            <h2>Embedding-Path Hotspots</h2>
+            <p>
+              GLM-130B is especially useful because it makes one uncomfortable point explicit: instability can be dominated by a specific layer family rather than the whole model. Their report notes that embedding-layer gradient norms were often orders of magnitude larger than those of other layers early in training and that shrinking embedding gradients by <code>0.1</code> solved most numerical-instability problems in their stack.
+              <span class="ref-row">
+                <a class="ref-chip" href="https://arxiv.org/abs/2210.02414">GLM-130B</a>
+              </span>
+            </p>
+          </section>
+
+          <section id="recovery-playbook">
+            <h2>Recovery Playbook</h2>
+            <p>
+              Prevention is not enough for frontier or long-running pretraining jobs. PaLM describes a rollback strategy that restarted roughly <code>100</code> steps before a spike and skipped approximately <code>200-500</code> nearby batches. The important lesson is not the exact numbers alone. The lesson is that large runs need an operational view of rare failures, not only a theoretical one.
+              <span class="ref-row">
+                <a class="ref-chip" href="https://jmlr.org/papers/v24/22-1144.html">PaLM</a>
+              </span>
+            </p>
+          </section>
+
+          <section id="first-line-fixes">
+            <h2>First-Line Fixes And Escalation Boundary</h2>
+            <p>
+              First-line numeric fixes are straightforward: clean the dtype path, keep sensitive operations in FP32 where needed, verify optimizer-state precision, monitor embedding outliers, and keep clipping. If that is already done and spikes remain rare but operationally expensive, only then does a method like SPAM become worth reading as a frontier escalation. The chapter boundary is deliberate: numeric hygiene first, optimizer innovation second.
+            </p>
+          </section>
+
+          <section id="strengths-limitations">
+            <h2>Strengths And Limitations</h2>
+            <p><strong>Strength.</strong> The chapter is unusually actionable because it has exact public numbers and recovery logic, not only general advice.</p>
+            <p><strong>Limitation.</strong> Numeric hygiene can mask architecture-side problems if treated as the only response. A run that still spikes after this chapter is clean usually needs a surface-specific diagnosis in Chapters 6 through 8.</p>
+          </section>
+
+          <section id="practical">
+            <h2>Practical Notes</h2>
+            <p>
+              If a run produces infs or NaNs, inspect dtype and reduction paths before changing normalization geometry. If the run spikes late without obvious non-finite values, inspect attention entropy and output-head metrics before assuming the optimizer is solely to blame.
+            </p>
+          </section>
+
+          <nav class="chapter-nav">
+            <div class="nav-card"><span class="nav-label">Previous</span><a href="04-input-pipeline-and-packing.html">Chapter 4: Input Pipeline and Packing</a></div>
+            <div class="nav-card"><span class="nav-label">Next</span><a href="06-residual-and-depth-geometry.html">Chapter 6: Residual and Depth Geometry</a></div>
+          </nav>
+        </article>
+        <aside class="chapter-toc-card">
+          <h2 class="toc-heading">On This Page</h2>
+          <ol>
+            <li><a href="#why">Why this chapter exists</a></li>
+            <li><a href="#core-controls">Core controls</a></li>
+            <li><a href="#clipping-not-enough">Why clipping is not enough</a></li>
+            <li><a href="#precision-table">Precision path table</a></li>
+            <li><a href="#embedding-hotspot">Embedding-path hotspots</a></li>
+            <li><a href="#recovery-playbook">Recovery playbook</a></li>
+            <li><a href="#first-line-fixes">First-line fixes</a></li>
+            <li><a href="#strengths-limitations">Strengths and limitations</a></li>
+            <li><a href="#practical">Practical notes</a></li>
+          </ol>
+        </aside>
+      </main>
+    </div>
+  </body>
+</html>

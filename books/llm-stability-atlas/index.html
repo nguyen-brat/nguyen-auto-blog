@@ -1,1 +1,179 @@
-$(sed -n '1,200p' /home/nguyen/claude_research/reports/llm-stability-atlas/index.html)
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>LLM Stability Handbook</title>
+    <link rel="stylesheet" href="assets/styles.css">
+    <script defer src="assets/app.js"></script>
+  </head>
+  <body>
+    <header class="book-topbar">
+      <div class="book-topbar-inner">
+        <div class="brand">
+          <span class="eyebrow">Web Handbook</span>
+          <strong>LLM Training Stability and Degeneration Control</strong>
+        </div>
+        <nav class="top-links">
+          <a href="index.html" data-page="index.html">Home</a>
+          <a href="01-failure-taxonomy.html" data-page="01-failure-taxonomy.html">Part I</a>
+          <a href="03-baseline-recipe.html" data-page="03-baseline-recipe.html">Part II</a>
+          <a href="07-attention-logit-control.html" data-page="07-attention-logit-control.html">Part III</a>
+          <a href="appendix-sources-and-runtime-evidence.html" data-page="appendix-sources-and-runtime-evidence.html">Appendix</a>
+        </nav>
+      </div>
+    </header>
+    <div class="page-shell handbook-shell">
+      <aside class="global-nav">
+        <span class="nav-label">Table Of Contents</span>
+        <h2>Parts</h2>
+        <div class="part-nav">
+          <span class="part-label">Part I. Orientation</span>
+          <a href="01-failure-taxonomy.html" data-page="01-failure-taxonomy.html">01 Failure Taxonomy</a>
+          <a href="02-diagnosis-and-monitoring.html" data-page="02-diagnosis-and-monitoring.html">02 Diagnosis and Monitoring</a>
+        </div>
+        <div class="part-nav">
+          <span class="part-label">Part II. Stable Defaults</span>
+          <a href="03-baseline-recipe.html" data-page="03-baseline-recipe.html">03 Baseline Recipe</a>
+          <a href="04-input-pipeline-and-packing.html" data-page="04-input-pipeline-and-packing.html">04 Input Pipeline and Packing</a>
+          <a href="05-numeric-path-and-optimizer-hygiene.html" data-page="05-numeric-path-and-optimizer-hygiene.html">05 Numeric Path and Optimizer Hygiene</a>
+        </div>
+        <div class="part-nav">
+          <span class="part-label">Part III. Control Surfaces</span>
+          <a href="06-residual-and-depth-geometry.html" data-page="06-residual-and-depth-geometry.html">06 Residual and Depth Geometry</a>
+          <a href="07-attention-logit-control.html" data-page="07-attention-logit-control.html">07 Attention-Logit Control</a>
+          <a href="08-output-head-stability.html" data-page="08-output-head-stability.html">08 Output-Head Stability</a>
+        </div>
+        <div class="part-nav">
+          <span class="part-label">Part IV. Degeneration And Frontier</span>
+          <a href="09-repetition-and-decoding.html" data-page="09-repetition-and-decoding.html">09 Repetition and Decoding</a>
+          <a href="10-frontier-methods-and-open-questions.html" data-page="10-frontier-methods-and-open-questions.html">10 Frontier Methods and Open Questions</a>
+          <a href="appendix-sources-and-runtime-evidence.html" data-page="appendix-sources-and-runtime-evidence.html">Appendix</a>
+        </div>
+      </aside>
+      <main class="frontmatter">
+        <section class="frontmatter-hero frontmatter-panel">
+          <span class="section-label">Front Matter</span>
+          <h1>Stabilizing Language Model Training Without Flattening Every Failure Into “Gradient Explosion”</h1>
+          <p class="lede">
+            This handbook argues that language-model instability is not one problem but a family of control surfaces: residual and norm geometry, attention-logit collapse, output-head divergence, numeric-path hygiene, and repetition that may be decode-side rather than train-side.
+            <span class="ref-row">
+              <a class="ref-chip" href="https://www.microsoft.com/en-us/research/publication/on-layer-normalization-in-the-transformer-architecture/">Xiong 2020</a>
+              <a class="ref-chip" href="https://machinelearning.apple.com/research/stabilizing-transformer-training">Entropy Collapse</a>
+              <a class="ref-chip" href="https://jmlr.org/papers/v24/22-1144.html">PaLM</a>
+            </span>
+          </p>
+          <div class="chip-row">
+            <span class="chip blue">Heavy Rerun Bundle</span>
+            <span class="chip ready">Verified Defaults</span>
+            <span class="chip partial">Partial-Evidence Chapters</span>
+            <span class="chip frontier">Frontier Methods Separated</span>
+          </div>
+        </section>
+
+        <section class="frontmatter-grid">
+          <article class="frontmatter-panel">
+            <span class="section-label">Central Thesis</span>
+            <h2>The first diagnosis must be “which tensor path failed first?”</h2>
+            <p>
+              Lowering the learning rate, clipping harder, or adding a repetition penalty are common reactions because they are easy to apply. They are also often wrong first moves. The rerun bundle reinforced the same conclusion as the earlier research: each intervention family belongs to a different failure surface, so the book is organized by diagnosis before prescription.
+            </p>
+          </article>
+          <article class="frontmatter-panel">
+            <span class="section-label">Evidence Posture</span>
+            <h2>What is already strong and what remains partial</h2>
+            <ul>
+              <li><span class="maturity-chip ready">ready</span> baseline recipe, diagnosis, attention-logit controls, numeric hygiene, and repetition-vs-decoding separation.</li>
+              <li><span class="maturity-chip partial">partial</span> DeepNorm coefficient appendix coverage and OEC as a production-ready replacement for <code>z-loss</code>.</li>
+              <li><span class="maturity-chip frontier">frontier</span> SPAM as a default optimizer intervention and omni-model transfer claims for modality-balanced training.</li>
+            </ul>
+          </article>
+        </section>
+
+        <section class="matrix-wrap">
+          <span class="section-label">Symptom Map</span>
+          <h2>First metric, likely control surface, next chapter</h2>
+          <table>
+            <thead>
+              <tr><th>Observed symptom</th><th>First metric</th><th>Likely control surface</th><th>Read next</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Diverges early unless LR is tiny</td><td>Initialization-time gradient norms</td><td>Residual and normalization geometry</td><td>Chapters 3 and 6</td></tr>
+              <tr><td>Stable for a long time, then spikes abruptly</td><td>Attention entropy and max attention logits</td><td>Attention-logit control</td><td>Chapters 2 and 7</td></tr>
+              <tr><td>Loss is ordinary but LM logits drift large</td><td><code>logsumexp(logits)</code></td><td>Output-head stability</td><td>Chapters 2 and 8</td></tr>
+              <tr><td>FP16 run shows infs or NaNs</td><td>Softmax dtype and reduction dtype</td><td>Numeric path and optimizer hygiene</td><td>Chapter 5</td></tr>
+              <tr><td>Generated text loops while curves look sane</td><td>Greedy versus nucleus outputs</td><td>Repetition and decoding</td><td>Chapter 9</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section class="part-grid">
+          <article class="part-card">
+            <span class="part-label">Part I. Orientation</span>
+            <h3>Failure before method</h3>
+            <p>Start here if the current problem statement is still “training exploded.” This part replaces that phrase with a usable taxonomy and a procedural monitoring order.</p>
+          </article>
+          <article class="part-card">
+            <span class="part-label">Part II. Stable Defaults</span>
+            <h3>What should already be in a serious LM recipe</h3>
+            <p>This part states the default stack first: Pre-LN or RMSNorm, warmup, clip <code>1.0</code>, FP32-sensitive ops, attention-logit control, <code>z-loss</code>, and explicit <code>[eod]</code> packing.</p>
+          </article>
+          <article class="part-card">
+            <span class="part-label">Part III. Control Surfaces</span>
+            <h3>Where the main mechanism families diverge</h3>
+            <p>Residual scaling, attention-logit controls, and LM-head stabilization are taught as separate chapters so they are not collapsed into one anti-spike recipe.</p>
+          </article>
+          <article class="part-card">
+            <span class="part-label">Part IV. Degeneration And Frontier</span>
+            <h3>What to separate, and what not to overstate</h3>
+            <p>The book ends by separating decode-time degeneration from train-time failure, then closes with frontier methods and open evidence gaps.</p>
+          </article>
+        </section>
+
+        <section class="reading-paths">
+          <article class="frontmatter-panel">
+            <span class="section-label">Reading Path</span>
+            <h2>If you are debugging a run</h2>
+            <p>Read Chapters 1 and 2 first. Then go to the chapter matching the first abnormal metric: residual, attention, LM head, numeric path, or decoding. The intended order is diagnostic, not encyclopedic. The book is arranged to stop you from spending Chapter 10 time on a Chapter 3 problem.</p>
+          </article>
+          <article class="frontmatter-panel">
+            <span class="section-label">Reading Path</span>
+            <h2>If you are designing a baseline recipe</h2>
+            <p>Read Chapter 3 first, then Chapters 4, 5, 7, and 8. Leave Chapter 10 for last because it is a cautionary maturity chapter, not a baseline cookbook. If your stack still lacks basic packing, numeric-path hygiene, or <code>z-loss</code>, the frontier chapter is almost certainly too early.</p>
+          </article>
+        </section>
+
+        <section class="frontmatter-grid">
+          <article class="frontmatter-panel">
+            <span class="section-label">How To Read</span>
+            <h2>Use the book like a lab manual, not like a trend map</h2>
+            <p>
+              The organizing question in every chapter is the same: which tensor path failed first, what is the first metric to inspect, and what is the cheapest coherent intervention that matches that failure? This is why the book puts taxonomy and monitoring before mechanisms, and stable defaults before frontier methods.
+            </p>
+          </article>
+          <article class="frontmatter-panel">
+            <span class="section-label">Rerun Effect</span>
+            <h2>What the new research system changed</h2>
+            <p>
+              The earlier version of this report compressed too quickly. The current version is generated from a rerun bundle that now records chapter packets, failure playbooks, method playbooks, claim verdicts, contradiction repair, and a chapter-local retrieval pass for thin sections. The output should therefore read less like a polished memo and more like a compact research handbook.
+            </p>
+          </article>
+        </section>
+
+        <section class="frontmatter-panel">
+          <span class="section-label">Book Apparatus</span>
+          <h2>What changed in the rerun-based rewrite</h2>
+          <p>
+            The report is now driven by the rerun heavy-mode bundle and its research-runtime layer, not only by a polished synthesis. The appendix reflects claim verdicts, contradiction repair, retrieval history, and chapter maturity so the site can show where the evidence is strong and where it is intentionally cautious.
+          </p>
+          <p>
+            The practical consequence is visible in the chapter bodies: Chapter 1 now includes first-line fixes rather than only labels, the mechanism chapters distinguish default controls from escalations, and the appendix now reports which chapters are truly full versus only compact-ready.
+          </p>
+          <p class="footer-note">
+            Continue to <a href="01-failure-taxonomy.html">Chapter 1</a> if you want the book’s diagnostic boundary first, or jump to <a href="03-baseline-recipe.html">Chapter 3</a> if you already know you want the stable default stack.
+          </p>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>

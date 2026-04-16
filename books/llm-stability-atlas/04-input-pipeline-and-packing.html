@@ -1,1 +1,137 @@
-$(sed -n '1,200p' /home/nguyen/claude_research/reports/llm-stability-atlas/04-input-pipeline-and-packing.html)
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Input Pipeline and Packing</title>
+    <link rel="stylesheet" href="assets/styles.css">
+    <script defer src="assets/app.js"></script>
+  </head>
+  <body>
+    <header class="book-topbar">
+      <div class="book-topbar-inner">
+        <div class="brand">
+          <span class="eyebrow">Part II. Stable Defaults</span>
+          <strong>Chapter 4. Input Pipeline and Packing</strong>
+        </div>
+        <nav class="top-links">
+          <a href="index.html" data-page="index.html">Home</a>
+          <a href="03-baseline-recipe.html" data-page="03-baseline-recipe.html">Previous</a>
+          <a href="04-input-pipeline-and-packing.html" data-page="04-input-pipeline-and-packing.html">Chapter 4</a>
+          <a href="05-numeric-path-and-optimizer-hygiene.html" data-page="05-numeric-path-and-optimizer-hygiene.html">Next</a>
+        </nav>
+      </div>
+    </header>
+    <div class="page-shell handbook-shell">
+      <aside class="global-nav">
+        <span class="nav-label">Part II</span>
+        <h2>Stable Defaults</h2>
+        <div class="part-nav">
+          <span class="part-label">Current Part</span>
+          <a href="03-baseline-recipe.html" data-page="03-baseline-recipe.html">03 Baseline Recipe</a>
+          <a href="04-input-pipeline-and-packing.html" data-page="04-input-pipeline-and-packing.html">04 Input Pipeline and Packing</a>
+          <a href="05-numeric-path-and-optimizer-hygiene.html" data-page="05-numeric-path-and-optimizer-hygiene.html">05 Numeric Path and Optimizer Hygiene</a>
+        </div>
+      </aside>
+      <main class="chapter-layout">
+        <article class="chapter-main">
+          <div class="chapter-header">
+            <nav class="breadcrumb"><a href="index.html">Handbook Home</a> / Part II / Chapter 4</nav>
+            <span class="chapter-number">Chapter 4</span>
+            <h1>Input Pipeline and Packing</h1>
+            <p class="summary">
+              This chapter isolates the upstream side of stability: document boundaries, token streams, fixed-length blocks <code>[B, T]</code>, and the way packing mistakes can later look like optimizer, architecture, or decoding failures.
+              <span class="ref-row">
+                <a class="ref-chip" href="https://jmlr.org/papers/v24/22-1144.html">PaLM</a>
+                <a class="ref-chip" href="https://openreview.net/forum?id=rygGQyrFvH">Holtzman</a>
+                <a class="ref-chip" href="https://openreview.net/forum?id=SJeYe0NtvH">Welleck</a>
+              </span>
+            </p>
+          </div>
+
+          <section id="why">
+            <h2>Why This Chapter Exists</h2>
+            <p>
+              A surprising number of repetition complaints and EOS pathologies begin upstream of the model. If documents are concatenated without explicit boundaries, the model is trained on false continuations. If windowing logic treats boundary tokens inconsistently, the resulting generations can look like decoding bugs or objective-level repetition. This chapter exists because no amount of optimizer cleverness repairs a target distribution that was corrupted during packing.
+            </p>
+          </section>
+
+          <section id="flow">
+            <h2>End-To-End Flow</h2>
+            <p>
+              In the stable pattern taught here, raw documents are tokenized into one long stream, document boundaries are marked with explicit <code>[eod]</code> or EOS-like separators, and the stream is then chunked into fixed-length windows <code>[B, T]</code>. Embedding lookup maps token IDs to hidden states <code>[B, T, D]</code>. Everything later in the network assumes that this boundary discipline is meaningful. PaLM is a strong anchor because it publicly exposes exact-length <code>2048</code>-token training sequences with explicit end-of-document treatment.
+              <span class="ref-row">
+                <a class="ref-chip" href="https://jmlr.org/papers/v24/22-1144.html">PaLM</a>
+              </span>
+            </p>
+          </section>
+
+          <section id="packing-failure-signatures">
+            <h2>Packing Failure Signatures</h2>
+            <ul>
+              <li>Boundary tokens are overproduced or underproduced even when training curves look sane.</li>
+              <li>Generations appear to continue abruptly into semantically unrelated text, as if document seams are learnable continuations.</li>
+              <li>Repetition persists in a way that is suspiciously tied to EOS or document-boundary symbols rather than generic token loops.</li>
+              <li>Objective-level interventions seem necessary earlier than they should, because the model was trained on bad cross-document continuations.</li>
+            </ul>
+          </section>
+
+          <section id="worked-example">
+            <h2>Worked Example</h2>
+            <p>
+              Suppose two unrelated documents are concatenated without an explicit <code>[eod]</code> marker. The model is then trained to predict the opening tokens of the second document as valid continuation targets for the first. At inference time this can surface in at least two misleading forms. First, the model may appear bad at termination because it has learned that hard boundaries are uncommon. Second, the model may look repetitive around seam-like transitions because it has learned noisy continuation rules near document ends. Neither symptom proves a numeric training failure. Both can be generated upstream.
+            </p>
+          </section>
+
+          <section id="repair-order">
+            <h2>Repair Order</h2>
+            <ol>
+              <li>Verify explicit boundary insertion in the raw token stream.</li>
+              <li>Verify that chunking into <code>[B, T]</code> windows preserves the intended boundary semantics.</li>
+              <li>Audit EOS handling in both training targets and decoding code.</li>
+              <li>Only after packing is clean, decide whether repetition remains decode-side or objective-side.</li>
+            </ol>
+          </section>
+
+          <section id="what-packing-cannot-explain">
+            <h2>What Packing Cannot Explain</h2>
+            <p>
+              Packing is a powerful upstream cause, but it should not be made to explain everything. It does not cause attention entropy collapse in the sense used by Chapter 7. It does not create output-head drift in the sense used by Chapter 8. It does not explain FP16 softmax brittleness. This negative boundary matters because teams can become so aware of data issues that they start attributing every strange generation artifact to packing. The correct use of this chapter is narrower: use it to rule in or rule out boundary-related errors before moving deeper into model-side or decode-side explanations.
+            </p>
+          </section>
+
+          <section id="strengths-limitations">
+            <h2>Strengths And Limitations</h2>
+            <p><strong>Strength.</strong> Packing hygiene is often the cheapest stability win in the entire system because the repair cost is low and the diagnostic value is high.</p>
+            <p><strong>Limitation.</strong> Clean packing does not solve attention entropy collapse, output-head divergence, or mixed-precision numeric failures. It only prevents data-boundary errors from contaminating those later diagnoses.</p>
+          </section>
+
+          <section id="practical">
+            <h2>Practical Notes</h2>
+            <p>
+              Before adding unlikelihood loss or blaming greedy decoding for every loop, audit boundary handling first. The right order is packing, then decode-side diagnosis, then objective-level intervention. Reversing that order makes the entire repetition discussion noisier.
+            </p>
+          </section>
+
+          <nav class="chapter-nav">
+            <div class="nav-card"><span class="nav-label">Previous</span><a href="03-baseline-recipe.html">Chapter 3: Baseline Recipe</a></div>
+            <div class="nav-card"><span class="nav-label">Next</span><a href="05-numeric-path-and-optimizer-hygiene.html">Chapter 5: Numeric Path and Optimizer Hygiene</a></div>
+          </nav>
+        </article>
+        <aside class="chapter-toc-card">
+          <h2 class="toc-heading">On This Page</h2>
+          <ol>
+            <li><a href="#why">Why this chapter exists</a></li>
+            <li><a href="#flow">End-to-end flow</a></li>
+            <li><a href="#packing-failure-signatures">Failure signatures</a></li>
+            <li><a href="#worked-example">Worked example</a></li>
+            <li><a href="#repair-order">Repair order</a></li>
+            <li><a href="#what-packing-cannot-explain">What packing cannot explain</a></li>
+            <li><a href="#strengths-limitations">Strengths and limitations</a></li>
+            <li><a href="#practical">Practical notes</a></li>
+          </ol>
+        </aside>
+      </main>
+    </div>
+  </body>
+</html>

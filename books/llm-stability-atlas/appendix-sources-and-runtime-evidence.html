@@ -1,1 +1,180 @@
-$(sed -n '1,240p' /home/nguyen/claude_research/reports/llm-stability-atlas/appendix-sources-and-runtime-evidence.html)
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Appendix: Sources and Runtime Evidence</title>
+    <link rel="stylesheet" href="assets/styles.css">
+    <script defer src="assets/app.js"></script>
+  </head>
+  <body>
+    <header class="book-topbar">
+      <div class="book-topbar-inner">
+        <div class="brand">
+          <span class="eyebrow">Appendix</span>
+          <strong>Sources and Runtime Evidence</strong>
+        </div>
+        <nav class="top-links">
+          <a href="index.html" data-page="index.html">Home</a>
+          <a href="10-frontier-methods-and-open-questions.html" data-page="10-frontier-methods-and-open-questions.html">Previous</a>
+          <a href="appendix-sources-and-runtime-evidence.html" data-page="appendix-sources-and-runtime-evidence.html">Appendix</a>
+        </nav>
+      </div>
+    </header>
+    <div class="page-shell handbook-shell">
+      <aside class="global-nav">
+        <span class="nav-label">Appendix</span>
+        <h2>Research Apparatus</h2>
+        <div class="part-nav">
+          <span class="part-label">Book End Matter</span>
+          <a href="appendix-sources-and-runtime-evidence.html" data-page="appendix-sources-and-runtime-evidence.html">Sources and Runtime Evidence</a>
+        </div>
+      </aside>
+      <main class="chapter-layout">
+        <article class="chapter-main">
+          <div class="chapter-header">
+            <nav class="breadcrumb"><a href="index.html">Handbook Home</a> / Appendix</nav>
+            <span class="chapter-number">Appendix</span>
+            <h1>Sources and Runtime Evidence</h1>
+            <p class="summary">
+              The appendix reflects the rerun heavy-mode bundle rather than only a bibliography. It exposes chapter maturity, source roles, claim verdicts, retrieval history, and the remaining unsupported edges of the book.
+            </p>
+          </div>
+
+          <section id="chapter-support">
+            <h2>Chapter Support Detail</h2>
+            <div class="appendix-table">
+              <table>
+                <thead>
+                  <tr><th>Chapter</th><th>Status</th><th>Why</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>Failure taxonomy</td><td><span class="maturity-chip ready">full</span></td><td>Strong partition plus explicit first-line fix routing</td></tr>
+                  <tr><td>Diagnosis and monitoring</td><td><span class="maturity-chip ready">full</span></td><td>Metric-first diagnostic sequence is well anchored</td></tr>
+                  <tr><td>Baseline recipe</td><td><span class="maturity-chip ready">full</span></td><td>Exact public defaults available from PaLM and OLMo</td></tr>
+                  <tr><td>Residual and depth geometry</td><td><span class="maturity-chip partial">compact-only</span></td><td>Mechanism is strong; appendix-complete coefficient mapping remains partial</td></tr>
+                  <tr><td>Attention-logit control</td><td><span class="maturity-chip ready">full</span></td><td>Best blend of mechanism and deployable controls</td></tr>
+                  <tr><td>Output-head stability</td><td><span class="maturity-chip partial">compact-only</span></td><td><code>z-loss</code> is strong, OEC remains thinner</td></tr>
+                  <tr><td>Numeric path and optimizer hygiene</td><td><span class="maturity-chip ready">full</span></td><td>Public values and recovery logic are concrete</td></tr>
+                  <tr><td>Repetition and decoding</td><td><span class="maturity-chip ready">full</span></td><td>Decode-versus-train split is strongly supported</td></tr>
+                  <tr><td>Frontier methods</td><td><span class="maturity-chip frontier">frontier-thin</span></td><td>Useful and cautious, but not a full reference chapter yet</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section id="source-tables">
+            <h2>Primary And Supporting Sources</h2>
+            <div class="appendix-table">
+              <table>
+                <thead><tr><th>Source</th><th>Role in the book</th><th>Status</th></tr></thead>
+                <tbody>
+                  <tr><td><a href="https://www.microsoft.com/en-us/research/publication/on-layer-normalization-in-the-transformer-architecture/">Xiong 2020</a></td><td>Residual and norm baseline</td><td><span class="maturity-chip ready">ready</span></td></tr>
+                  <tr><td><a href="https://jmlr.org/papers/v24/22-1144.html">PaLM</a></td><td>Baseline recipe, <code>z-loss</code>, clipping, packing, recovery</td><td><span class="maturity-chip ready">ready</span></td></tr>
+                  <tr><td><a href="https://machinelearning.apple.com/research/stabilizing-transformer-training">Entropy Collapse</a></td><td>Attention-logit precursor and theory</td><td><span class="maturity-chip ready">ready</span></td></tr>
+                  <tr><td><a href="https://arxiv.org/abs/2210.02414">GLM-130B</a></td><td>DeepNorm instantiation and FP16 numeric lessons</td><td><span class="maturity-chip ready">ready</span></td></tr>
+                  <tr><td><a href="https://arxiv.org/abs/2203.00555">DeepNet</a></td><td>Residual scaling and depth stability</td><td><span class="maturity-chip partial">partial</span></td></tr>
+                  <tr><td><a href="https://arxiv.org/abs/2601.02031">OEC</a></td><td>Frontier output-head method</td><td><span class="maturity-chip partial">partial</span></td></tr>
+                  <tr><td><a href="https://arxiv.org/abs/2501.06842">SPAM</a></td><td>Frontier optimizer intervention</td><td><span class="maturity-chip frontier">frontier</span></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section id="claim-maturity">
+            <h2>Claim Maturity Summary</h2>
+            <div class="appendix-grid">
+              <div class="runtime-panel">
+                <span class="section-label">Verified</span>
+                <p>
+                  The rerun verified the taxonomy split, Pre-LN as first-line baseline, attention entropy as a precursor, <code>z-loss</code> as a battle-tested default, clipping as necessary but insufficient, and decode-versus-train repetition separation.
+                </p>
+              </div>
+              <div class="runtime-panel">
+                <span class="section-label">Partial</span>
+                <p>
+                  DeepNorm as an escalation is credible but still appendix-limited on coefficient detail; OEC is promising but not yet mature enough to replace <code>z-loss</code>; omni transfer remains an under-sourced inference.
+                </p>
+              </div>
+            </div>
+          </section>
+
+          <section id="runtime-trace">
+            <h2>Runtime Trace Summary</h2>
+            <div class="runtime-panel">
+              <p>The rerun used the heavy-mode runtime layer:</p>
+              <pre>_evidence/claims.json
+_evidence/trace.json
+_evidence/query_log.md
+_evidence/contradictions.md</pre>
+              <p>
+                The recorded steps now include decomposer, retriever, verifier, synthesis-reviewer, chapter-expander, and a targeted gap-filling retrieval pass. This matters because the handbook is no longer a single synthesis hop away from raw sources; it is backed by an explicit research-runtime trace.
+              </p>
+            </div>
+          </section>
+
+          <section id="contradictions-and-repairs">
+            <h2>Contradictions And Repairs</h2>
+            <div class="runtime-panel">
+              <ul>
+                <li>Pre-LN versus OLMo2 norm placement: resolved by teaching Pre-LN as the historical stability baseline and OLMo2 as a modern variant, not a contradiction-free duplicate.</li>
+                <li>Q/K norm versus soft-capping versus <code>sigmaReparam</code>: resolved by treating them as one family without forcing a universal winner.</li>
+                <li>OEC versus <code>z-loss</code>: resolved by keeping <code>z-loss</code> in the default stack and OEC in the frontier margin.</li>
+                <li>Omni transfer: resolved by leaving it under-sourced and outside the verified claim set.</li>
+              </ul>
+            </div>
+          </section>
+
+          <section id="uncertainty-inventory">
+            <h2>Uncertainty Inventory</h2>
+            <div class="appendix-table">
+              <table>
+                <thead><tr><th>Item</th><th>Status</th><th>Why it remains open</th></tr></thead>
+                <tbody>
+                  <tr><td>DeepNorm coefficient mapping across variants</td><td><code>[UNCERTAIN]</code></td><td>Full appendix-level coverage was not completed in the rerun</td></tr>
+                  <tr><td>OLMo2 exact optimizer-state and loss coefficients</td><td><code>[MISSING FROM SOURCE]</code></td><td>Public docs recover architecture facts, not every recipe constant</td></tr>
+                  <tr><td>OEC at frontier text-model scale</td><td><code>[UNCERTAIN]</code></td><td>Evidence remains newer and narrower than PaLM’s precedent</td></tr>
+                  <tr><td>Current omni-model stability decomposition</td><td><code>[MISSING FROM SOURCE]</code></td><td>No strong multimodal primary source was retrieved in this pass</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section id="bundle-links">
+            <h2>Bundle Artifacts</h2>
+            <p>
+              The handbook was regenerated from the rerun research bundle in the
+              repo workspace. The core local research artifacts are:
+            </p>
+            <pre>research/2026-04-16-llm-training-stability-and-degeneration-control-rerun/
+  landscape.md
+  deep_dive.md
+  source_manifest.md
+  self_critique.md
+  _evidence/claims.json
+  _evidence/trace.json
+  _evidence/query_log.md
+  _evidence/contradictions.md</pre>
+          </section>
+
+          <nav class="chapter-nav">
+            <div class="nav-card"><span class="nav-label">Previous</span><a href="10-frontier-methods-and-open-questions.html">Chapter 10: Frontier Methods and Open Questions</a></div>
+            <div class="nav-card"><span class="nav-label">Next</span><a href="index.html">Return to Handbook Home</a></div>
+          </nav>
+        </article>
+        <aside class="chapter-toc-card">
+          <h2 class="toc-heading">On This Page</h2>
+          <ol>
+            <li><a href="#chapter-support">Chapter support</a></li>
+            <li><a href="#source-tables">Sources</a></li>
+            <li><a href="#claim-maturity">Claim maturity</a></li>
+            <li><a href="#runtime-trace">Runtime trace</a></li>
+            <li><a href="#contradictions-and-repairs">Contradictions and repairs</a></li>
+            <li><a href="#uncertainty-inventory">Uncertainty inventory</a></li>
+            <li><a href="#bundle-links">Bundle artifacts</a></li>
+          </ol>
+        </aside>
+      </main>
+    </div>
+  </body>
+</html>

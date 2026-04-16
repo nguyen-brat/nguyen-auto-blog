@@ -1,1 +1,147 @@
-$(sed -n '1,200p' /home/nguyen/claude_research/reports/llm-stability-atlas/09-repetition-and-decoding.html)
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Repetition and Decoding</title>
+    <link rel="stylesheet" href="assets/styles.css">
+    <script defer src="assets/app.js"></script>
+  </head>
+  <body>
+    <header class="book-topbar">
+      <div class="book-topbar-inner">
+        <div class="brand">
+          <span class="eyebrow">Part IV. Degeneration And Frontier</span>
+          <strong>Chapter 9. Repetition and Decoding</strong>
+        </div>
+        <nav class="top-links">
+          <a href="index.html" data-page="index.html">Home</a>
+          <a href="08-output-head-stability.html" data-page="08-output-head-stability.html">Previous</a>
+          <a href="09-repetition-and-decoding.html" data-page="09-repetition-and-decoding.html">Chapter 9</a>
+          <a href="10-frontier-methods-and-open-questions.html" data-page="10-frontier-methods-and-open-questions.html">Next</a>
+        </nav>
+      </div>
+    </header>
+    <div class="page-shell handbook-shell">
+      <aside class="global-nav">
+        <span class="nav-label">Part IV</span>
+        <h2>Degeneration And Frontier</h2>
+        <div class="part-nav">
+          <span class="part-label">Current Part</span>
+          <a href="09-repetition-and-decoding.html" data-page="09-repetition-and-decoding.html">09 Repetition and Decoding</a>
+          <a href="10-frontier-methods-and-open-questions.html" data-page="10-frontier-methods-and-open-questions.html">10 Frontier Methods and Open Questions</a>
+          <a href="appendix-sources-and-runtime-evidence.html" data-page="appendix-sources-and-runtime-evidence.html">Appendix</a>
+        </div>
+      </aside>
+      <main class="chapter-layout">
+        <article class="chapter-main">
+          <div class="chapter-header">
+            <nav class="breadcrumb"><a href="index.html">Handbook Home</a> / Part IV / Chapter 9</nav>
+            <span class="chapter-number">Chapter 9</span>
+            <h1>Repetition and Decoding</h1>
+            <p class="summary">
+              This chapter exists to prevent one of the most common misdiagnoses in LM debugging: repeated tokens are not automatically proof of training collapse. Greedy or beam decoding can induce loops, while train-time unlikelihood is a separate objective-level intervention.
+              <span class="ref-row">
+                <a class="ref-chip" href="https://openreview.net/forum?id=rygGQyrFvH">Holtzman</a>
+                <a class="ref-chip" href="https://openreview.net/forum?id=SJeYe0NtvH">Welleck</a>
+                <a class="ref-chip" href="https://jmlr.org/papers/v24/22-1144.html">PaLM</a>
+              </span>
+            </p>
+          </div>
+
+          <section id="why">
+            <h2>Why This Chapter Exists</h2>
+            <p>
+              Users often describe repetition in the same vocabulary as explosion or divergence because the symptom is visible and frustrating. But the causal graph is wider: repetition may begin in decode-time search, data packing, or the training objective. This chapter exists so that “the model repeats itself” stops being treated as one monolithic verdict about training quality.
+            </p>
+          </section>
+
+          <section id="decode-time">
+            <h2>Decode-Time Degeneration</h2>
+            <p>
+              Holtzman et al. show that maximization-based decoding can produce repetitive loops even when the underlying LM is unchanged. That observation is what makes nucleus sampling a diagnostic tool rather than merely a stylistic preference. If greedy decoding loops and nucleus sampling does not, the immediate lesson is not “training is broken.” The lesson is “search changed the behavior.”
+              <span class="ref-row">
+                <a class="ref-chip" href="https://openreview.net/forum?id=rygGQyrFvH">Holtzman</a>
+              </span>
+            </p>
+          </section>
+
+          <section id="train-time">
+            <h2>Train-Time Repetition</h2>
+            <p>
+              Welleck et al. introduce unlikelihood training as a direct objective-level response to repeated-token behavior. This belongs to a different layer of the system than decode-side changes. It should therefore be introduced only after decode-time and packing causes have been made less plausible.
+              <span class="ref-row">
+                <a class="ref-chip" href="https://openreview.net/forum?id=SJeYe0NtvH">Welleck</a>
+              </span>
+            </p>
+          </section>
+
+          <section id="packing-bridge">
+            <h2>The Packing Bridge</h2>
+            <p>
+              The repetition chapter also depends on Chapter 4. If explicit <code>[eod]</code> handling is broken, a model can be trained on bad boundary continuations and later show repetition or EOS weirdness that looks like an objective problem. That is why this book insists on the order: packing first, decoding second, training objective third.
+            </p>
+          </section>
+
+          <section id="diagnosis-ladder">
+            <h2>Diagnosis Ladder</h2>
+            <ol>
+              <li>Compare greedy against nucleus sampling.</li>
+              <li>If the loop disappears, treat the issue as decode-side first.</li>
+              <li>If repetition remains, audit <code>[eod]</code> packing and EOS handling.</li>
+              <li>If repetition still remains under sane decoding and clean packing, then objective-level fixes such as unlikelihood become justified.</li>
+            </ol>
+          </section>
+
+          <section id="coexisting-failures">
+            <h2>When Repetition Coexists With Real Training Instability</h2>
+            <p>
+              A useful caution is that decode-side repetition and true training instability are not mutually exclusive. A run can have an attention-logit problem and still look especially bad under greedy decoding. A bad packing pipeline can coexist with a numerically fragile FP16 stack. The chapter boundary remains useful because it tells you which variable to perturb first. Change the decoder before changing the optimizer. Fix packing before changing the loss. If the repetition survives those cheap perturbations, only then does the training path become the more plausible origin.
+            </p>
+          </section>
+
+          <section id="anti-patterns">
+            <h2>Anti-Patterns</h2>
+            <ul>
+              <li>Adding repetition penalties before checking whether the problem is only greedy decoding.</li>
+              <li>Assuming any repeated token is evidence of gradient explosion.</li>
+              <li>Applying unlikelihood while the base CE training path is still numerically unstable.</li>
+            </ul>
+          </section>
+
+          <section id="strengths-limitations">
+            <h2>Strengths And Limitations</h2>
+            <p><strong>Strength.</strong> The chapter sharply prevents wasted debugging effort by separating decoding, data, and objective causes.</p>
+            <p><strong>Limitation.</strong> Repetition can coexist with genuine training instability. The point of the chapter is not to deny overlap, but to make the first branching decision explicit.</p>
+          </section>
+
+          <section id="practical">
+            <h2>Practical Notes</h2>
+            <p>
+              Before modifying training, run a greedy-versus-nucleus comparison and verify explicit <code>[eod]</code> packing. Only then decide whether the problem belongs to decoding, data, or the training objective.
+            </p>
+          </section>
+
+          <nav class="chapter-nav">
+            <div class="nav-card"><span class="nav-label">Previous</span><a href="08-output-head-stability.html">Chapter 8: Output-Head Stability</a></div>
+            <div class="nav-card"><span class="nav-label">Next</span><a href="10-frontier-methods-and-open-questions.html">Chapter 10: Frontier Methods and Open Questions</a></div>
+          </nav>
+        </article>
+        <aside class="chapter-toc-card">
+          <h2 class="toc-heading">On This Page</h2>
+          <ol>
+            <li><a href="#why">Why this chapter exists</a></li>
+            <li><a href="#decode-time">Decode-time degeneration</a></li>
+            <li><a href="#train-time">Train-time repetition</a></li>
+            <li><a href="#packing-bridge">Packing bridge</a></li>
+            <li><a href="#diagnosis-ladder">Diagnosis ladder</a></li>
+            <li><a href="#coexisting-failures">Coexisting failures</a></li>
+            <li><a href="#anti-patterns">Anti-patterns</a></li>
+            <li><a href="#strengths-limitations">Strengths and limitations</a></li>
+            <li><a href="#practical">Practical notes</a></li>
+          </ol>
+        </aside>
+      </main>
+    </div>
+  </body>
+</html>

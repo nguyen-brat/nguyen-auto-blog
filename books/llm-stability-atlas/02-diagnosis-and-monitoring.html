@@ -1,1 +1,218 @@
-$(sed -n '1,200p' /home/nguyen/claude_research/reports/llm-stability-atlas/02-diagnosis-and-monitoring.html)
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Diagnosis and Monitoring</title>
+    <link rel="stylesheet" href="assets/styles.css">
+    <script defer src="assets/app.js"></script>
+  </head>
+  <body>
+    <header class="book-topbar">
+      <div class="book-topbar-inner">
+        <div class="brand">
+          <span class="eyebrow">Part I. Orientation</span>
+          <strong>Chapter 2. Diagnosis and Monitoring</strong>
+        </div>
+        <nav class="top-links">
+          <a href="index.html" data-page="index.html">Home</a>
+          <a href="01-failure-taxonomy.html" data-page="01-failure-taxonomy.html">Previous</a>
+          <a href="02-diagnosis-and-monitoring.html" data-page="02-diagnosis-and-monitoring.html">Chapter 2</a>
+          <a href="03-baseline-recipe.html" data-page="03-baseline-recipe.html">Next</a>
+        </nav>
+      </div>
+    </header>
+    <div class="page-shell handbook-shell">
+      <aside class="global-nav">
+        <span class="nav-label">Part I</span>
+        <h2>Orientation</h2>
+        <div class="part-nav">
+          <span class="part-label">Current Part</span>
+          <a href="01-failure-taxonomy.html" data-page="01-failure-taxonomy.html">01 Failure Taxonomy</a>
+          <a href="02-diagnosis-and-monitoring.html" data-page="02-diagnosis-and-monitoring.html">02 Diagnosis and Monitoring</a>
+        </div>
+        <div class="part-nav">
+          <span class="part-label">Next Part</span>
+          <a href="03-baseline-recipe.html" data-page="03-baseline-recipe.html">03 Baseline Recipe</a>
+        </div>
+      </aside>
+      <main class="chapter-layout">
+        <article class="chapter-main">
+          <div class="chapter-header">
+            <nav class="breadcrumb"><a href="index.html">Handbook Home</a> / Part I / Chapter 2</nav>
+            <span class="chapter-number">Chapter 2</span>
+            <h1>Diagnosis and Monitoring</h1>
+            <p class="summary">
+              This chapter turns the taxonomy into a monitoring contract. The main claim is that a serious LM run should separately observe attention entropy, <code>logsumexp(logits)</code>, embedding-gradient norms, precision-sensitive paths, and decode-side behavior instead of collapsing everything into loss and global grad norm.
+              <span class="ref-row">
+                <a class="ref-chip" href="https://machinelearning.apple.com/research/stabilizing-transformer-training">Entropy Collapse</a>
+                <a class="ref-chip" href="https://jmlr.org/papers/v24/22-1144.html">PaLM</a>
+                <a class="ref-chip" href="https://arxiv.org/abs/2210.02414">GLM-130B</a>
+                <a class="ref-chip" href="https://huggingface.co/allenai/OLMo-1B-hf">OLMo</a>
+              </span>
+            </p>
+          </div>
+
+          <section id="why-this-chapter-exists">
+            <h2>Why This Chapter Exists</h2>
+            <p>
+              The taxonomy only becomes useful once it is measurable. Many training stacks still log a single top-line loss, a global gradient norm, and perhaps a non-finite counter. That is enough to confirm that a run is bad; it is not enough to decide which chapter of this book to open first. The reason this chapter exists is to reduce the gap between “something went wrong” and “we know which control surface deserves the next debugging hour.”
+            </p>
+            <p>
+              The rerun bundle improved this chapter materially because the heavy-mode workflow forced a chapter packet and a failure playbook. That means the monitoring order below is not only a summary of beliefs. It is a structured response path extracted from the evidence.
+            </p>
+          </section>
+
+          <section id="monitoring-contract">
+            <h2>Monitoring Contract</h2>
+            <p>
+              A minimally adequate monitoring stack for decoder-LM stability should cover four distinct locations plus one inference-side probe:
+            </p>
+            <ol>
+              <li><strong>Residual / backbone health.</strong> Log global grad norm and, if possible, a small set of layerwise norms to distinguish early geometry failure from later localized failure.</li>
+              <li><strong>Attention-score health.</strong> Log attention entropy per head or per layer, plus at least one scale statistic for attention logits. The Apple entropy-collapse paper is what justifies treating this as first-class rather than decorative instrumentation.</li>
+              <li><strong>Output-head health.</strong> Log <code>logsumexp(logits)</code> or equivalent <code>log Z</code> statistics if the LM head is suspected to drift. This is the monitoring partner of <code>z-loss</code>.</li>
+              <li><strong>Numeric-path health.</strong> Log non-finite fractions, mixed-precision overflow events, and any dtype-sensitive softmax or reduction path that can silently become brittle.</li>
+              <li><strong>Decode-side health.</strong> For repetition complaints, compare greedy against nucleus sampling before changing training. Holtzman makes this a diagnostic, not merely a generation preference.</li>
+            </ol>
+          </section>
+
+          <section id="key-metrics">
+            <h2>Key Metrics And What They Mean</h2>
+            <h3>Attention entropy</h3>
+            <p>
+              This is the most important chapter-specific metric in the current evidence base. The Apple paper argues that late-stage instability is preceded by attention entropy collapse. That matters because it gives a signal that rises earlier and more specifically than waiting for a visible loss spike.
+              <span class="ref-row">
+                <a class="ref-chip" href="https://machinelearning.apple.com/research/stabilizing-transformer-training">Entropy Collapse</a>
+              </span>
+            </p>
+
+            <h3><code>logsumexp(logits)</code> or <code>log Z</code></h3>
+            <p>
+              If the model’s output-head behavior is drifting while the trunk still looks comparatively ordinary, the global loss can lag the true problem. PaLM’s explicit <code>z-loss = 10^-4 \log^2 Z</code> is strong evidence that output-normalizer control is part of the training recipe, not a secondary afterthought.
+              <span class="ref-row">
+                <a class="ref-chip" href="https://jmlr.org/papers/v24/22-1144.html">PaLM</a>
+              </span>
+            </p>
+
+            <h3>Embedding-path gradient norm</h3>
+            <p>
+              GLM-130B reports that embedding-layer gradients could dominate early training instability and that shrinking them by <code>0.1</code> solved most numerical-instability problems in that stack. The practical lesson is not that every run needs embedding-gradient shrink. The lesson is that one layer family can carry most of the instability burden while global norms still look only moderately abnormal.
+              <span class="ref-row">
+                <a class="ref-chip" href="https://arxiv.org/abs/2210.02414">GLM-130B</a>
+              </span>
+            </p>
+
+            <h3>Softmax and reduction dtype</h3>
+            <p>
+              When infs or NaNs appear, the first question should not always be whether the architecture is wrong. In public reports, attention softmax dtype and FP32-sensitive optimizer or reduction paths matter materially. That is why numeric-path monitoring appears before any frontier optimizer discussion in this handbook.
+            </p>
+          </section>
+
+          <section id="diagnostic-order">
+            <h2>Diagnostic Order</h2>
+            <div class="matrix-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Observed behavior</th>
+                    <th>Check first</th>
+                    <th>If abnormal</th>
+                    <th>If normal</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Diverges early or only trains under a tiny LR</td>
+                    <td>Initialization-time grad norms and norm placement</td>
+                    <td>Go to residual / norm geometry</td>
+                    <td>Inspect numeric path and warmup assumptions</td>
+                  </tr>
+                  <tr>
+                    <td>Long stable interval, then abrupt spike</td>
+                    <td>Attention entropy and attention-logit scale</td>
+                    <td>Go to attention-logit control</td>
+                    <td>Check output-head metrics next</td>
+                  </tr>
+                  <tr>
+                    <td>Loss looks ordinary but logits drift large</td>
+                    <td><code>logsumexp(logits)</code></td>
+                    <td>Go to output-head stability</td>
+                    <td>Return to numeric-path inspection</td>
+                  </tr>
+                  <tr>
+                    <td>Infs or NaNs appear under mixed precision</td>
+                    <td>Softmax and reduction dtype</td>
+                    <td>Go to numeric-path hygiene</td>
+                    <td>Check layer-local outliers such as embeddings</td>
+                  </tr>
+                  <tr>
+                    <td>Generations loop while training curves look sane</td>
+                    <td>Greedy versus nucleus outputs</td>
+                    <td>Go to repetition and decoding</td>
+                    <td>Audit packing and training objective</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section id="worked-diagnostic-path">
+            <h2>Worked Diagnostic Path</h2>
+            <p>
+              Consider a run that trains normally for many thousands of steps, then shows a sudden loss spike, recovers partially after restart, and later produces repetitive generations. A weak diagnosis would treat all three observations as one failure. A stronger diagnosis proceeds in order. First ask whether any head-specific attention entropy collapsed before the spike. If yes, the attention-logit path is implicated and Q/K normalization or soft-capping becomes a coherent intervention family. If entropy looks ordinary, ask whether <code>logsumexp(logits)</code> rose steadily. If yes, the LM head deserves separate treatment via <code>z-loss</code> or, experimentally, OEC. If both are quiet and the run used a fragile FP16 path, inspect numeric-path details. Only after training-side monitoring is judged should the later repetition symptom be interpreted, starting with a greedy-versus-nucleus comparison.
+            </p>
+            <p>
+              This sequence sounds procedural because it is procedural. The main value of the monitoring chapter is not elegance but order.
+            </p>
+          </section>
+
+          <section id="anti-patterns">
+            <h2>Common Anti-Patterns</h2>
+            <ul>
+              <li>Watching only loss and global grad norm, then concluding the model “randomly exploded.”</li>
+              <li>Adding repetition penalties before verifying whether the issue disappears under nucleus sampling.</li>
+              <li>Treating all late spikes as optimizer problems even when attention entropy gave an earlier surface-specific warning.</li>
+              <li>Logging non-finite counts without also logging the dtype-sensitive operations where they are likely to originate.</li>
+            </ul>
+          </section>
+
+          <section id="strengths-and-limitations">
+            <h2>Strengths And Limitations</h2>
+            <p>
+              <strong>Strength.</strong> The chapter gives a real intervention order and makes the rest of the handbook conditional on observable signals.
+            </p>
+            <p>
+              <strong>Limitation.</strong> The current public evidence still does not provide one shared dashboard trace containing all the recommended metrics on the same flagship run, so the chapter is best read as a well-supported forensic playbook rather than a reproduced monitoring benchmark.
+            </p>
+          </section>
+
+          <section id="practical-notes">
+            <h2>Practical Notes</h2>
+            <p>
+              If a training platform is too constrained to log everything, log the metrics that change decisions. In the current evidence base, the most decision-relevant additions beyond loss are attention entropy, <code>logsumexp(logits)</code>, one embedding-path gradient monitor, and a decode-side comparison. Those four additions do more to sharpen diagnosis than adding many generic per-layer summaries without a chapter-specific question behind them.
+            </p>
+          </section>
+
+          <nav class="chapter-nav">
+            <div class="nav-card"><span class="nav-label">Previous</span><a href="01-failure-taxonomy.html">Chapter 1: Failure Taxonomy</a></div>
+            <div class="nav-card"><span class="nav-label">Next</span><a href="03-baseline-recipe.html">Chapter 3: Baseline Recipe</a></div>
+          </nav>
+        </article>
+        <aside class="chapter-toc-card">
+          <h2 class="toc-heading">On This Page</h2>
+          <ol>
+            <li><a href="#why-this-chapter-exists">Why this chapter exists</a></li>
+            <li><a href="#monitoring-contract">Monitoring contract</a></li>
+            <li><a href="#key-metrics">Key metrics</a></li>
+            <li><a href="#diagnostic-order">Diagnostic order</a></li>
+            <li><a href="#worked-diagnostic-path">Worked path</a></li>
+            <li><a href="#anti-patterns">Anti-patterns</a></li>
+            <li><a href="#strengths-and-limitations">Strengths and limitations</a></li>
+            <li><a href="#practical-notes">Practical notes</a></li>
+          </ol>
+        </aside>
+      </main>
+    </div>
+  </body>
+</html>

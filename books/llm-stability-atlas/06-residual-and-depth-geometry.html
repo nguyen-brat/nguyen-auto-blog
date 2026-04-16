@@ -1,1 +1,151 @@
-$(sed -n '1,200p' /home/nguyen/claude_research/reports/llm-stability-atlas/06-residual-and-depth-geometry.html)
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Residual and Depth Geometry</title>
+    <link rel="stylesheet" href="assets/styles.css">
+    <script defer src="assets/app.js"></script>
+  </head>
+  <body>
+    <header class="book-topbar">
+      <div class="book-topbar-inner">
+        <div class="brand">
+          <span class="eyebrow">Part III. Control Surfaces</span>
+          <strong>Chapter 6. Residual and Depth Geometry</strong>
+        </div>
+        <nav class="top-links">
+          <a href="index.html" data-page="index.html">Home</a>
+          <a href="05-numeric-path-and-optimizer-hygiene.html" data-page="05-numeric-path-and-optimizer-hygiene.html">Previous</a>
+          <a href="06-residual-and-depth-geometry.html" data-page="06-residual-and-depth-geometry.html">Chapter 6</a>
+          <a href="07-attention-logit-control.html" data-page="07-attention-logit-control.html">Next</a>
+        </nav>
+      </div>
+    </header>
+    <div class="page-shell handbook-shell">
+      <aside class="global-nav">
+        <span class="nav-label">Part III</span>
+        <h2>Control Surfaces</h2>
+        <div class="part-nav">
+          <span class="part-label">Current Part</span>
+          <a href="06-residual-and-depth-geometry.html" data-page="06-residual-and-depth-geometry.html">06 Residual and Depth Geometry</a>
+          <a href="07-attention-logit-control.html" data-page="07-attention-logit-control.html">07 Attention-Logit Control</a>
+          <a href="08-output-head-stability.html" data-page="08-output-head-stability.html">08 Output-Head Stability</a>
+        </div>
+      </aside>
+      <main class="chapter-layout">
+        <article class="chapter-main">
+          <div class="chapter-header">
+            <nav class="breadcrumb"><a href="index.html">Handbook Home</a> / Part III / Chapter 6</nav>
+            <span class="chapter-number">Chapter 6</span>
+            <h1>Residual and Depth Geometry</h1>
+            <p class="summary">
+              This chapter teaches why Pre-LN is the first-line geometry fix and why DeepNorm is better framed as an escalation for depth-driven or residual-path-driven late spikes rather than as the universal first intervention.
+              <span class="ref-row">
+                <a class="ref-chip" href="https://www.microsoft.com/en-us/research/publication/on-layer-normalization-in-the-transformer-architecture/">Xiong 2020</a>
+                <a class="ref-chip" href="https://arxiv.org/abs/2203.00555">DeepNet</a>
+                <a class="ref-chip" href="https://arxiv.org/abs/2210.02414">GLM-130B</a>
+                <a class="ref-chip" href="https://openreview.net/forum?id=52YBEzcI0l">Spike No More</a>
+              </span>
+            </p>
+          </div>
+
+          <section id="why">
+            <h2>Why This Chapter Exists</h2>
+            <p>
+              If the residual stream itself is badly conditioned, later fixes attack symptoms. This chapter exists to separate two closely related but not identical ideas: first, the low-cost fix of using a stable normalization geometry such as Pre-LN or a modern RMSNorm variant; second, the deeper residual-rescaling logic used when ordinary geometry is not enough for very deep or spike-prone stacks.
+            </p>
+          </section>
+
+          <section id="preln-first">
+            <h2>Why Pre-LN Comes First</h2>
+            <p>
+              Xiong et al. remain the cleanest causal source in this family. Their analysis shows that Post-LN yields large expected gradients near the output layer at initialization, which in practice explains why such models require more delicate optimization to remain stable. Pre-LN addresses that failure mode directly. That is why Pre-LN belongs in the baseline recipe before any more elaborate residual scaling is considered.
+              <span class="ref-row">
+                <a class="ref-chip" href="https://www.microsoft.com/en-us/research/publication/on-layer-normalization-in-the-transformer-architecture/">Xiong 2020</a>
+              </span>
+            </p>
+          </section>
+
+          <section id="formal-mechanics">
+            <h2>Formal Mechanics</h2>
+            <p>
+              In the plain residual view, each layer updates hidden states <code>H_l [B, T, D]</code> by adding a sublayer transformation back onto the shortcut. The stability question is how large that sublayer contribution is relative to the shortcut path. DeepNorm’s practical intuition is to make the shortcut larger and the effective sublayer contribution smaller. GLM-130B reports the concrete residual form:
+            </p>
+            <pre><code>DeepNorm(x) = LayerNorm(alpha * x + Network(x))
+alpha = sqrt(2N)</code></pre>
+            <p>
+              where <code>N</code> is the number of layers in the instantiation they discuss. The exact appendix-level coefficient mapping across all variants remains <code>[UNCERTAIN]</code> in this bundle, but the qualitative mechanism is well supported: stabilize very deep residual accumulation by enlarging the shortcut relative to per-layer update magnitude.
+            </p>
+          </section>
+
+          <section id="deepnorm-escalation">
+            <h2>Why DeepNorm Is An Escalation</h2>
+            <p>
+              DeepNorm is compelling when the failure is not merely “my initialization is fragile” but “the residual path keeps amplifying updates over a very deep stack.” GLM-130B is useful here because it demonstrates a large public model using DeepNorm in combination with other numeric safeguards. <em>Spike No More</em> arrives at a closely related qualitative lesson from a different route: keep sublayers small and the shortcut large.
+            </p>
+            <p>
+              The reason the book does not teach DeepNorm as the universal first move is practical. Many teams still fail earlier and more cheaply through ordinary geometry, warmup, precision, or attention-logit issues. Adding residual-rescaling complexity too early obscures diagnosis.
+            </p>
+          </section>
+
+          <section id="decision-boundary">
+            <h2>Decision Boundary</h2>
+            <div class="matrix-wrap">
+              <table>
+                <thead>
+                  <tr><th>Observed pattern</th><th>Interpretation</th><th>Action</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>Run diverges early under Post-LN but stabilizes under Pre-LN</td><td>Initialization geometry problem</td><td>Keep the simpler Pre-LN / RMSNorm baseline</td></tr>
+                  <tr><td>Run remains fragile mainly when depth is very high or horizon is long</td><td>Residual-path amplification remains</td><td>Evaluate DeepNorm-style escalation</td></tr>
+                  <tr><td>Late spikes align better with entropy collapse than with depth scaling</td><td>Attention surface is more plausible</td><td>Go to Chapter 7 first</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section id="anti-patterns">
+            <h2>Anti-Patterns</h2>
+            <ul>
+              <li>Jumping directly to DeepNorm without first checking whether a simpler Pre-LN baseline already fixes early divergence.</li>
+              <li>Calling every late spike a residual problem when attention entropy has not yet been inspected.</li>
+              <li>Presenting exact coefficient choices as universal when the current public appendix coverage in this bundle is still incomplete.</li>
+            </ul>
+          </section>
+
+          <section id="strengths-limitations">
+            <h2>Strengths And Limitations</h2>
+            <p><strong>Strength.</strong> The chapter has a strong mechanism story and a credible large-model case-study path from Xiong 2020 through GLM-130B.</p>
+            <p><strong>Limitation.</strong> This remains a <span class="maturity-chip partial">partial</span> chapter in the rerun because the full coefficient mapping across all DeepNorm variants is still appendix-limited in the current evidence base.</p>
+          </section>
+
+          <section id="practical">
+            <h2>Practical Notes</h2>
+            <p>
+              If a run still looks depth-fragile after the baseline recipe is already clean, this chapter becomes relevant. If the baseline is not yet clean, or if attention entropy is the first clear abnormal metric, residual escalation is probably not the right first move.
+            </p>
+          </section>
+
+          <nav class="chapter-nav">
+            <div class="nav-card"><span class="nav-label">Previous</span><a href="05-numeric-path-and-optimizer-hygiene.html">Chapter 5: Numeric Path and Optimizer Hygiene</a></div>
+            <div class="nav-card"><span class="nav-label">Next</span><a href="07-attention-logit-control.html">Chapter 7: Attention-Logit Control</a></div>
+          </nav>
+        </article>
+        <aside class="chapter-toc-card">
+          <h2 class="toc-heading">On This Page</h2>
+          <ol>
+            <li><a href="#why">Why this chapter exists</a></li>
+            <li><a href="#preln-first">Why Pre-LN comes first</a></li>
+            <li><a href="#formal-mechanics">Formal mechanics</a></li>
+            <li><a href="#deepnorm-escalation">DeepNorm as escalation</a></li>
+            <li><a href="#decision-boundary">Decision boundary</a></li>
+            <li><a href="#anti-patterns">Anti-patterns</a></li>
+            <li><a href="#strengths-limitations">Strengths and limitations</a></li>
+            <li><a href="#practical">Practical notes</a></li>
+          </ol>
+        </aside>
+      </main>
+    </div>
+  </body>
+</html>

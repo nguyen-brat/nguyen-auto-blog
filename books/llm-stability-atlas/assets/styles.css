@@ -1,1 +1,482 @@
-$(sed -n '1,240p' /home/nguyen/claude_research/reports/llm-stability-atlas/assets/styles.css)
+:root {
+  --bg: #f4efe6;
+  --paper: #fbf8f1;
+  --paper-strong: #fffdf8;
+  --ink: #1d1a17;
+  --muted: #625a52;
+  --line: #d9cfc1;
+  --accent-red: #a33b2b;
+  --accent-blue: #1e5b7a;
+  --accent-amber: #b98226;
+  --accent-sage: #68735a;
+  --shadow: 0 20px 55px rgba(63, 46, 26, 0.08);
+  --radius: 22px;
+  --radius-sm: 14px;
+  --nav-width: 18rem;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background:
+    radial-gradient(circle at top right, rgba(30, 91, 122, 0.08), transparent 28rem),
+    radial-gradient(circle at top left, rgba(163, 59, 43, 0.06), transparent 24rem),
+    linear-gradient(180deg, #f7f1e8 0%, var(--bg) 100%);
+  color: var(--ink);
+  font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+  line-height: 1.7;
+}
+
+a {
+  color: var(--accent-blue);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+code {
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 0.92em;
+  background: rgba(30, 91, 122, 0.08);
+  border-radius: 0.35rem;
+  padding: 0.08rem 0.35rem;
+}
+
+p,
+ul,
+ol {
+  margin-top: 0;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  vertical-align: top;
+  text-align: left;
+  padding: 0.78rem 0.85rem;
+  border-bottom: 1px solid rgba(217, 207, 193, 0.9);
+}
+
+th {
+  font: 700 0.82rem/1.3 "Avenir Next Condensed", "Franklin Gothic Medium", "Trebuchet MS", sans-serif;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--accent-red);
+}
+
+.book-topbar,
+.global-nav,
+.chapter-toc-card,
+.chapter-main,
+.frontmatter-panel,
+.chapter-nav,
+.matrix-wrap,
+.part-card,
+.appendix-table,
+.note,
+.warning,
+.runtime-panel {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(255, 252, 246, 0.95));
+  border: 1px solid rgba(217, 207, 193, 0.95);
+  box-shadow: var(--shadow);
+}
+
+.book-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  backdrop-filter: blur(16px);
+  border-left: 0;
+  border-right: 0;
+  border-top: 0;
+  background: rgba(251, 248, 241, 0.92);
+  box-shadow: none;
+}
+
+.book-topbar-inner {
+  width: min(calc(100% - 2rem), 94rem);
+  margin: 0 auto;
+  padding: 0.95rem 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.brand {
+  display: flex;
+  flex-direction: column;
+  gap: 0.14rem;
+}
+
+.eyebrow,
+.section-label,
+.nav-label,
+.part-label,
+.maturity-chip,
+.chapter-number {
+  font: 700 0.72rem/1.2 "Avenir Next Condensed", "Franklin Gothic Medium", "Trebuchet MS", sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+}
+
+.eyebrow,
+.section-label,
+.nav-label,
+.part-label {
+  color: var(--accent-red);
+}
+
+.brand strong,
+h1,
+h2,
+h3,
+h4,
+.toc-heading {
+  font-family: "Avenir Next Condensed", "Franklin Gothic Medium", "Trebuchet MS", sans-serif;
+  letter-spacing: 0.01em;
+}
+
+.brand strong {
+  font-size: 1rem;
+}
+
+.top-links {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.top-links a,
+.global-nav a,
+.chapter-nav a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border-radius: 999px;
+  padding: 0.48rem 0.8rem;
+  color: var(--muted);
+  font: 600 0.88rem/1.2 "Avenir Next Condensed", "Franklin Gothic Medium", "Trebuchet MS", sans-serif;
+}
+
+.top-links a.active,
+.top-links a:hover,
+.global-nav a.active,
+.global-nav a:hover,
+.chapter-toc-card a.active {
+  color: var(--ink);
+  background: rgba(30, 91, 122, 0.08);
+  text-decoration: none;
+}
+
+.page-shell {
+  width: min(calc(100% - 2rem), 94rem);
+  margin: 1.15rem auto 4rem;
+}
+
+.handbook-shell {
+  display: grid;
+  grid-template-columns: var(--nav-width) minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.global-nav {
+  position: sticky;
+  top: 5.2rem;
+  border-radius: var(--radius);
+  padding: 1rem;
+}
+
+.global-nav h2,
+.chapter-toc-card h2 {
+  margin: 0 0 0.85rem;
+  font-size: 1.04rem;
+}
+
+.part-nav + .part-nav {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(217, 207, 193, 0.9);
+}
+
+.part-nav a {
+  display: block;
+  border-radius: 12px;
+  padding: 0.38rem 0.45rem;
+  margin-top: 0.18rem;
+}
+
+.frontmatter,
+.chapter-layout {
+  display: grid;
+  gap: 1rem;
+}
+
+.frontmatter-panel,
+.chapter-main,
+.chapter-nav,
+.chapter-toc-card,
+.matrix-wrap,
+.appendix-table,
+.note,
+.warning,
+.part-card,
+.runtime-panel {
+  border-radius: var(--radius);
+}
+
+.frontmatter-hero,
+.chapter-main {
+  padding: 1.35rem 1.45rem;
+}
+
+.frontmatter-panel,
+.part-card,
+.appendix-table,
+.runtime-panel {
+  padding: 1.18rem 1.3rem;
+}
+
+.frontmatter-grid,
+.part-grid,
+.reading-paths,
+.appendix-grid,
+.callout-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.frontmatter-grid,
+.part-grid,
+.reading-paths,
+.appendix-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.chapter-main h1,
+.frontmatter h1 {
+  margin: 0.32rem 0 0.85rem;
+  font-size: clamp(2rem, 3vw, 3rem);
+  line-height: 1.04;
+}
+
+.chapter-main h2,
+.frontmatter h2 {
+  margin: 0 0 0.65rem;
+  font-size: clamp(1.4rem, 2vw, 1.95rem);
+}
+
+.chapter-main h3 {
+  margin: 1.15rem 0 0.5rem;
+  font-size: 1.2rem;
+}
+
+.chapter-main section + section {
+  margin-top: 1.5rem;
+  padding-top: 1.35rem;
+  border-top: 1px solid rgba(217, 207, 193, 0.85);
+}
+
+.chapter-header {
+  margin-bottom: 1rem;
+}
+
+.breadcrumb {
+  color: var(--muted);
+  font-size: 0.93rem;
+}
+
+.summary,
+.lede {
+  font-size: 1.06rem;
+  color: #2d2a27;
+  max-width: 70ch;
+}
+
+.chip-row,
+.ref-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 0.85rem;
+}
+
+.maturity-chip,
+.chip,
+.ref-chip {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.32rem 0.66rem;
+}
+
+.maturity-chip.ready,
+.chip.ready {
+  background: rgba(104, 115, 90, 0.12);
+  color: var(--accent-sage);
+}
+
+.maturity-chip.partial,
+.chip.partial {
+  background: rgba(185, 130, 38, 0.14);
+  color: var(--accent-amber);
+}
+
+.maturity-chip.frontier,
+.chip.frontier,
+.chip.warn {
+  background: rgba(163, 59, 43, 0.12);
+  color: var(--accent-red);
+}
+
+.chip.blue {
+  background: rgba(30, 91, 122, 0.1);
+  color: var(--accent-blue);
+}
+
+.ref-chip {
+  font: 700 0.72rem/1.2 "Avenir Next Condensed", "Franklin Gothic Medium", "Trebuchet MS", sans-serif;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent-blue);
+  background: rgba(30, 91, 122, 0.08);
+}
+
+.matrix-wrap {
+  padding: 1rem 1.1rem;
+}
+
+.part-card h3,
+.frontmatter-panel h3 {
+  margin: 0.3rem 0 0.45rem;
+  font-size: 1.16rem;
+}
+
+.chapter-nav {
+  padding: 1rem 1.2rem;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.8rem;
+}
+
+.nav-card {
+  border-radius: var(--radius-sm);
+  padding: 0.8rem 0.9rem;
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(217, 207, 193, 0.9);
+}
+
+.chapter-toc-card {
+  position: sticky;
+  top: 5.2rem;
+  padding: 1rem;
+}
+
+.chapter-toc-card ol {
+  margin: 0;
+  padding-left: 1.2rem;
+}
+
+.chapter-toc-card li {
+  margin: 0.3rem 0;
+}
+
+.chapter-toc-card a {
+  display: inline-block;
+  border-radius: 10px;
+  padding: 0.1rem 0.3rem;
+}
+
+.appendix-grid {
+  align-items: start;
+}
+
+.runtime-panel pre,
+.appendix-table pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 0.92rem;
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(217, 207, 193, 0.9);
+  padding: 0.85rem;
+  border-radius: var(--radius-sm);
+}
+
+details.evidence {
+  margin-top: 0.9rem;
+  border: 1px solid rgba(217, 207, 193, 0.9);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.4);
+}
+
+details.evidence summary {
+  cursor: pointer;
+  padding: 0.8rem 0.95rem;
+  font: 700 0.82rem/1.3 "Avenir Next Condensed", "Franklin Gothic Medium", "Trebuchet MS", sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--accent-red);
+}
+
+.evidence-body {
+  padding: 0 0.95rem 0.95rem;
+}
+
+.footer-note {
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+@media (max-width: 1080px) {
+  .handbook-shell,
+  .chapter-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .global-nav,
+  .chapter-toc-card {
+    position: static;
+  }
+}
+
+@media (max-width: 760px) {
+  .frontmatter-grid,
+  .part-grid,
+  .reading-paths,
+  .appendix-grid,
+  .chapter-nav {
+    grid-template-columns: 1fr;
+  }
+
+  .book-topbar-inner {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .page-shell {
+    width: min(calc(100% - 1rem), 94rem);
+  }
+
+  .frontmatter-hero,
+  .chapter-main,
+  .frontmatter-panel,
+  .appendix-table,
+  .runtime-panel {
+    padding: 1rem;
+  }
+}
